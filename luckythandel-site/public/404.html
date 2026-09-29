@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>LuckyThandel — Cybersecurity Notes</title>
+    <script>
+      // Single Page Apps for GitHub Pages — redirect hack.
+      // Stores the deep path, bounces to the app root, and index.html restores it.
+      // https://github.com/rafgraph/spa-github-pages
+      (function () {
+        var segmentCount = 1; // /lucky-pages/<route>
+        var l = window.location;
+        var base =
+          l.protocol + '//' + l.hostname + (l.port ? ':' + l.port : '');
+        var repo = l.pathname.split('/').slice(0, 1 + segmentCount).join('/');
+        var route = l.pathname
+          .slice(1)
+          .split('/')
+          .slice(segmentCount)
+          .join('/');
+        var redirect =
+          base +
+          repo +
+          '/?/' +
+          route.replace(/&/g, '~and~') +
+          (l.search ? '&' + l.search.slice(1).replace(/&/g, '~and~') : '') +
+          l.hash;
+        l.replace(redirect);
+      })();
+    </script>
+  </head>
+  <body></body>
+</html>
