@@ -6,8 +6,8 @@ import vueDevTools from 'vite-plugin-vue-devtools'
 
 // https://vite.dev/config/
 export default defineConfig({
-  // For Luckythandel.github.io user site keep '/'. For a project site, set base to '/<repo>/'.
-  base: '/',
+  // Project site LuckyThandel/lucky-pages serves from /lucky-pages/.
+  base: '/lucky-pages/',
   plugins: [
     vue(),
     vueDevTools(),
