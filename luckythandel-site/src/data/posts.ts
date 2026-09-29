@@ -10,6 +10,26 @@ export interface Post {
 
 export const writeups: Post[] = [
   {
+    slug: 'htb-blue-eternalblue',
+    title: 'HTB Blue: EternalBlue (MS17-010) from nmap to SYSTEM',
+    tag: 'retired-machine',
+    date: '2026-09-29',
+    level: 'easy',
+    summary:
+      'The famous Windows 7 box done properly: SMB recon, confirming MS17-010, exploiting EternalBlue to SYSTEM, and the patching lessons that still matter.',
+    body: [
+      'Blue is a retired HackTheBox easy machine and the single best teacher of why unpatched SMB is catastrophic. This walkthrough follows my standard checklist: enumerate completely first, confirm the vulnerability, then exploit — no guessing. Lab target only; the techniques below are for retired boxes and authorized systems.',
+      'Recon: nmap -sC -sV shows ports 135 (RPC), 139 (NetBIOS) and 445 (SMB) on Windows 7 Professional SP1. That combination — SMB open on an old Windows build — is the smell of EternalBlue. Before touching exploits, confirm it: nmap --script smb-vuln-ms17-010 -p 445 reports the host VULNERABLE to remote code execution in SMBv1 (MS17-010).',
+      'Quick SMB enumeration first, because the checklist says so: smbclient -L and enum4linux to list shares and users. On Blue there is nothing to log into — the shares are empty or inaccessible — which tells you the intended path is the SMB service itself, not credentials.',
+      'Exploitation: Metasploit module exploit/windows/smb/ms17_010_eternalblue. Set RHOSTS to the target, set LHOST to your tunneled address, default Windows x64 Meterpreter reverse TCP payload — then run. The module negotiates the SMBv1 transaction overflow and returns a session as NT AUTHORITY\\SYSTEM on the first try when the target is genuinely unpatched.',
+      'Flags: Blue is easy-rated, so user.txt sits on a standard user desktop while root.txt needs SYSTEM. EternalBlue lands you as SYSTEM directly, so both flags fall in one session — use Meterpreter search -f to locate them, then read each file. (Flag values are redacted here per HTB rules; earn them in your own lab.)',
+      'Why this works: MS17-010 is a buffer overflow in how SMBv1 handles crafted Trans2 requests. The exploit corrupts kernel pool memory to gain arbitrary code execution at the highest privilege level — which is why one vulnerability equals total compromise, no privilege escalation step needed.',
+      'Dead ends I hit so you do not have to: trying SMB brute-force first (wasted twenty minutes — always run the vuln script before password guessing), and forgetting to set LHOST after switching VPN servers (the classic silent failure — session never calls home).',
+      'Remediation notes for the defender side: disable SMBv1 everywhere, apply the MS17-010 patch, block port 445 at the perimeter, and alert on any SMBv1 negotiation still happening on the network. WannaCry wormed the planet through exactly this hole in 2017 — unpatched SMB is never just a lab problem.',
+      'Next in this series: more retired-machine walkthroughs following the same checklist. Written by Lucky Thandel.',
+    ],
+  },
+  {
     slug: 'htb-getting-started',
     title: 'How I approach a new HTB machine: my repeatable checklist',
     tag: 'methodology',
