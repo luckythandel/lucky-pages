@@ -1,0 +1,136 @@
+/* Lucky Thandel — dark/night hacking theme */
+:root {
+  --bg: #0a0e0a;
+  --bg2: #0d1310;
+  --panel: #101711;
+  --border: #1e2b20;
+  --green: #00ff41;
+  --green-dim: #00c832;
+  --amber: #ffb000;
+  --red: #ff3355;
+  --text: #c9d4c9;
+  --muted: #6b7f6e;
+  --mono: "JetBrains Mono", "Cascadia Code", Consolas, "Courier New", monospace;
+}
+* { box-sizing: border-box; }
+html { background: var(--bg); }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--mono);
+  font-size: 15px;
+  line-height: 1.65;
+  min-height: 100vh;
+}
+/* scanlines overlay */
+body::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 50;
+  background: repeating-linear-gradient(
+    to bottom,
+    transparent 0px, transparent 2px,
+    rgba(0, 0, 0, 0.12) 3px, rgba(0, 0, 0, 0.12) 4px
+  );
+}
+#matrix {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  opacity: 0.14;
+  pointer-events: none;
+}
+.wrap { position: relative; z-index: 1; max-width: 900px; margin: 0 auto; padding: 0 20px 60px; }
+/* nav */
+.nav {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-wrap: wrap;
+  padding: 16px 0;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 32px;
+}
+.nav .logo { color: var(--green); font-weight: 700; text-decoration: none; margin-right: 18px; }
+.nav .logo .cursor { animation: blink 1s steps(1) infinite; }
+@keyframes blink { 50% { opacity: 0; } }
+.nav a.link { color: var(--muted); text-decoration: none; padding: 4px 10px; border: 1px solid transparent; }
+.nav a.link:hover, .nav a.link.active { color: var(--green); border-color: var(--border); background: var(--panel); }
+/* type */
+h1, h2, h3 { color: var(--green); font-weight: 700; }
+h1.hero { font-size: clamp(26px, 5vw, 44px); line-height: 1.2; margin: 10px 0 6px; }
+.glitch { text-shadow: 2px 0 var(--red), -2px 0 #00cfff; }
+a { color: var(--green); }
+a:hover { color: #7dff9e; }
+.muted { color: var(--muted); }
+.amber { color: var(--amber); }
+.prompt { color: var(--green); }
+.prompt::before { content: "➜ "; }
+pre.terminal {
+  background: #050805;
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--green);
+  padding: 14px 16px;
+  overflow-x: auto;
+  font-size: 13.5px;
+  line-height: 1.7;
+  box-shadow: 0 0 24px rgba(0, 255, 65, 0.06);
+}
+code { background: var(--panel); padding: 1px 6px; border: 1px solid var(--border); border-radius: 3px; font-size: 0.9em; }
+pre code { background: none; border: none; padding: 0; }
+/* cards */
+.card {
+  border: 1px solid var(--border);
+  background: var(--panel);
+  padding: 18px 20px;
+  margin: 16px 0;
+  position: relative;
+}
+.card:hover { border-color: var(--green-dim); box-shadow: 0 0 18px rgba(0, 255, 65, 0.08); }
+.card h3 { margin: 0 0 6px; }
+.card h3 a { text-decoration: none; }
+.tag {
+  display: inline-block;
+  font-size: 12px;
+  color: var(--amber);
+  border: 1px solid var(--border);
+  padding: 1px 8px;
+  margin: 2px 4px 2px 0;
+}
+.meta { color: var(--muted); font-size: 13px; }
+/* article */
+.article-body h2 { margin-top: 34px; border-bottom: 1px dashed var(--border); padding-bottom: 6px; }
+.article-body ul { padding-left: 22px; }
+.article-body li { margin: 6px 0; }
+.byline { border: 1px dashed var(--border); padding: 10px 14px; margin: 26px 0; color: var(--muted); }
+/* buttons */
+.btn {
+  display: inline-block;
+  border: 1px solid var(--green);
+  color: var(--green);
+  padding: 8px 18px;
+  text-decoration: none;
+  margin: 6px 8px 6px 0;
+  background: rgba(0, 255, 65, 0.05);
+}
+.btn:hover { background: var(--green); color: #041004; }
+/* footer */
+footer {
+  margin-top: 56px;
+  padding-top: 18px;
+  border-top: 1px solid var(--border);
+  color: var(--muted);
+  font-size: 13px;
+  display: flex;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+/* typing caret */
+#typed::after { content: "▊"; animation: blink 1s steps(1) infinite; color: var(--green); }
+table.cmd { border-collapse: collapse; width: 100%; font-size: 13.5px; margin: 14px 0; }
+table.cmd td, table.cmd th { border: 1px solid var(--border); padding: 6px 10px; text-align: left; }
+table.cmd th { color: var(--amber); background: var(--panel); }

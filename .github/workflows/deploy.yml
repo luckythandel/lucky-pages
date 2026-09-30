@@ -1,0 +1,67 @@
+name: Deploy to GitHub Pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate HTML + internal links
+        run: |
+          cd luckythandel-site
+          python3 - <<'PYEOF'
+          import os, re, sys
+          bad = []
+          for root, _, files in os.walk('.'):
+              for fn in files:
+                  if not fn.endswith('.html'):
+                      continue
+                  p = os.path.join(root, fn)
+                  html = open(p, encoding='utf-8').read()
+                  for href in re.findall(r'href="([^"#]+)"', html):
+                      if href.startswith(('http', 'mailto:', '#')):
+                          continue
+                      target = os.path.normpath(os.path.join(root, href))
+                      if os.path.isdir(target):
+                          target = os.path.join(target, 'index.html')
+                      if not os.path.exists(target):
+                          bad.append(p + ' -> ' + href)
+          if bad:
+              print('BROKEN LINKS:')
+              print('\n'.join(bad))
+              sys.exit(1)
+          print('All internal links resolve.')
+          PYEOF
+
+  build:
+    needs: validate
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Upload static artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: luckythandel-site
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

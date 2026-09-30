@@ -1,42 +1,35 @@
 # luckythandel-site
 
-This template should help get you started developing with Vue 3 in Vite.
+Static article site for **Lucky Thandel** — cybersecurity writeups, CTF solutions,
+retired HTB walkthroughs, and career guides. Dark/night hacking theme, zero build
+step, zero dependencies. Deployed to GitHub Pages at `https://luckythandel.github.io/lucky-pages/`.
 
-## Recommended IDE Setup
-
-[VS Code](https://code.visualstudio.com/) + [Vue (Official)](https://marketplace.visualstudio.com/items?itemName=Vue.volar) (and disable Vetur).
-
-## Recommended Browser Setup
-
-- Chromium-based browsers (Chrome, Edge, Brave, etc.):
-  - [Vue.js devtools](https://chromewebstore.google.com/detail/vuejs-devtools/nhdogjmejiglipccpnnnanhbledajbpd)
-  - [Turn on Custom Object Formatter in Chrome DevTools](http://bit.ly/object-formatters)
-- Firefox:
-  - [Vue.js devtools](https://addons.mozilla.org/en-US/firefox/addon/vue-js-devtools/)
-  - [Turn on Custom Object Formatter in Firefox DevTools](https://fxdx.dev/firefox-devtools-custom-object-formatters/)
-
-## Type Support for `.vue` Imports in TS
-
-TypeScript cannot handle type information for `.vue` imports by default, so we replace the `tsc` CLI with `vue-tsc` for type checking. In editors, we need [Volar](https://marketplace.visualstudio.com/items?itemName=Vue.volar) to make the TypeScript language service aware of `.vue` types.
-
-## Customize configuration
-
-See [Vite Configuration Reference](https://vite.dev/config/).
-
-## Project Setup
+## Preview locally
 
 ```sh
-npm install
+cd luckythandel-site
+python3 -m http.server 4000
+# open http://127.0.0.1:4000/
 ```
 
-### Compile and Hot-Reload for Development
+## Pages
 
-```sh
-npm run dev
-```
+| Path | Page |
+|---|---|
+| `/` | homepage (hero + latest articles) |
+| `/articles/` | article listing |
+| `/articles/htb-blue-walkthrough/` | HTB Blue EternalBlue walkthrough |
+| `/articles/picoctf-sqli-writeup/` | picoCTF SQL injection writeup |
+| `/articles/cybersecurity-career-roadmap/` | career roadmap 2026 |
+| `/about/` | about Lucky Thandel |
+| `/contact/` | LinkedIn / GitHub / email |
 
-### Type-Check, Compile and Minify for Production
+## Deploy
 
-```sh
-npm run build
-```
+- **GitHub Actions** (`.github/workflows/deploy.yml`): validates HTML + internal
+  links, then publishes the `luckythandel-site/` subtree to GitHub Pages on push
+  to `main`. Live at `https://luckythandel.github.io/lucky-pages/`.
+- **Jenkins** (`Jenkinsfile`): same link check, publishes the
+  `luckythandel-site/` subtree to `gh-pages`. Job: `luckythandel-site-deploy`.
+
+Target repo: `luckythandel/lucky-pages`.

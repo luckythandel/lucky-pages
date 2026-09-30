@@ -1,33 +1,66 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8">
-    <link rel="icon" href="/favicon.ico">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="LuckyThandel — HTB walkthroughs, CTF write-ups, cybersecurity tutorials and news.">
-    <title>LuckyThandel — Cybersecurity Notes</title>
-    <script>
-      // Single Page Apps for GitHub Pages — restore deep routes bounced via 404.html.
-      (function (l) {
-        if (l.search[1] === '/') {
-          var decoded = l.search
-            .slice(1)
-            .split('&')
-            .map(function (s) {
-              return s.replace(/~and~/g, '&');
-            })
-            .join('?');
-          window.history.replaceState(
-            null,
-            '',
-            l.pathname.slice(0, -1) + decoded + l.hash
-          );
-        }
-      })(window.location);
-    </script>
-  </head>
-  <body>
-    <div id="app"></div>
-    <script type="module" src="/src/main.ts"></script>
-  </body>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lucky Thandel — Cybersecurity, CTF & HTB Writeups</title>
+<meta name="description" content="Lucky Thandel writes about cybersecurity, CTF challenges, HackTheBox machines, and career roadmaps. Dark hacking-themed article site.">
+<link rel="stylesheet" href="assets/css/style.css">
+</head>
+<body>
+<canvas id="matrix"></canvas>
+<div class="wrap">
+<nav class="nav">
+  <a class="logo" href="./">lucky@thandel:~<span class="cursor">▊</span></a>
+  <a class="link active" href="./">./home</a>
+  <a class="link" href="articles/">./articles</a>
+  <a class="link" href="about/">./about</a>
+  <a class="link" href="contact/">./contact</a>
+</nav>
+
+<pre class="terminal"><span class="prompt"></span>whoami
+<span id="typed" data-type="Lucky Thandel — cybersecurity professional. CTF player. HTB grinder. I break things legally and write down how."></span></pre>
+
+<h1 class="hero glitch">~/lucky-thandel</h1>
+<p class="muted">cybersecurity articles · CTF writeups · retired HTB machine walkthroughs · career notes</p>
+
+<p>
+  <a class="btn" href="articles/">$ ls ./articles</a>
+  <a class="btn" href="about/">$ cat about.txt</a>
+</p>
+
+<h2><span class="amber">$</span> latest_drops</h2>
+
+<div class="card">
+  <h3><a href="articles/htb-blue-walkthrough/">HTB Blue — EternalBlue (MS17-010) Walkthrough</a></h3>
+  <div class="meta">2026-09-20 · HTB · retired machine · by Lucky Thandel</div>
+  <p>From nmap to SYSTEM on the most famous Windows box ever: scanning SMB, confirming MS17-010, and popping a shell — every command explained.</p>
+  <div><span class="tag">htb</span><span class="tag">windows</span><span class="tag">smb</span><span class="tag">metasploit</span></div>
+</div>
+
+<div class="card">
+  <h3><a href="articles/picoctf-sqli-writeup/">picoCTF Web Exploitation — SQL Injection Writeup</a></h3>
+  <div class="meta">2026-09-22 · CTF · web · by Lucky Thandel</div>
+  <p>Breaking a login form with `' OR 1=1--`, then going deeper: UNION-based extraction, column counting, and flag retrieval step by step.</p>
+  <div><span class="tag">ctf</span><span class="tag">web</span><span class="tag">sqli</span><span class="tag">picoctf</span></div>
+</div>
+
+<div class="card">
+  <h3><a href="articles/cybersecurity-career-roadmap/">Cybersecurity Career Roadmap 2026 — From Zero to Professional</a></h3>
+  <div class="meta">2026-09-25 · career · guide · by Lucky Thandel</div>
+  <p>No fluff: the exact skills, certs, labs, and portfolio moves that take you from zero to hired in 2026.</p>
+  <div><span class="tag">career</span><span class="tag">roadmap</span><span class="tag">certs</span></div>
+</div>
+
+<pre class="terminal"><span class="prompt"></span>cat motd.txt
+This site is plain static HTML — no trackers, no cookies, no JavaScript frameworks.
+Just writeups. Pull up a terminal and stay a while.</pre>
+
+<footer>
+  <span>© 2026 Lucky Thandel · written by Lucky Thandel</span>
+  <span>session <span id="session-clock">00:00:00</span> · <a href="contact/">contact</a></span>
+</footer>
+</div>
+<script src="assets/js/terminal.js"></script>
+</body>
 </html>

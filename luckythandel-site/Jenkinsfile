@@ -1,0 +1,71 @@
+// Jenkins pipeline: build & deploy the Lucky Thandel article site.
+// Job name: luckythandel-site-deploy (https://jenkins.luckythandel.com)
+pipeline {
+  agent any
+
+  environment {
+    SITE_DIR = 'luckythandel-site'
+    DEPLOY_BRANCH = 'gh-pages'
+  }
+
+  stages {
+    stage('Checkout') {
+      steps { checkout scm }
+    }
+    stage('Validate HTML') {
+      steps {
+        sh '''
+          set -eu
+          for f in $(find "$SITE_DIR" -name '*.html'); do
+            python3 -c "import html.parser,sys; html.parser.HTMLParser().feed(open(sys.argv[1]).read())" "$f" \
+              && echo "OK: $f"
+          done
+        '''
+      }
+    }
+    stage('Link check') {
+      steps {
+        sh '''
+          set -eu
+          cd "$SITE_DIR"
+          # every internal href must resolve to a file on disk
+          python3 - <<'EOF'
+import os, re, sys
+bad = []
+for root, _, files in os.walk('.'):
+    for fn in files:
+        if not fn.endswith('.html'):
+            continue
+        p = os.path.join(root, fn)
+        html = open(p, encoding='utf-8').read()
+        for href in re.findall(r'href="([^"#]+)"', html):
+            if href.startswith(('http', 'mailto:')):
+                continue
+            target = os.path.normpath(os.path.join(root, href))
+            if os.path.isdir(target):
+                target = os.path.join(target, 'index.html')
+            if not os.path.exists(target):
+                bad.append(f'{p} -> {href}')
+if bad:
+    print('BROKEN LINKS:'); print('\n'.join(bad)); sys.exit(1)
+print('All internal links resolve.')
+EOF
+        '''
+      }
+    }
+    stage('Publish gh-pages') {
+      when { branch 'main' }
+      steps {
+        sh '''
+          set -eu
+          git push origin `git subtree split --prefix "$SITE_DIR" HEAD`:refs/heads/$DEPLOY_BRANCH --force
+        '''
+      }
+    }
+  }
+
+  post {
+    success { echo 'Site validated and published.' }
+    failure { echo 'Build failed — see stage logs.' }
+  }
+}
