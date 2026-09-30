@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Honeypot diaries: 48 hours of SSH brute-force logs — Lucky Thandel</title>
+<meta name="description" content="I pointed a Cowrie honeypot at the internet for a weekend. Here are the weirdest login attempts, the most-patient botnets, and what defenders should log. By Lucky Thandel.">
+<link rel="stylesheet" href="../../assets/css/style.css">
+</head>
+<body>
+<canvas id="matrix"></canvas>
+<div class="wrap">
+<nav class="nav">
+  <a class="logo" href="../../">lucky@thandel:~<span class="cursor">▊</span></a>
+  <a class="link" href="../../">./home</a>
+  <a class="link active" href="../">./articles</a>
+  <a class="link" href="../../about/">./about</a>
+  <a class="link" href="../../contact/">./contact</a>
+</nav>
+
+<div class="meta">2026-09-26 · threat-intel · by Lucky Thandel</div>
+<h1>Honeypot diaries: 48 hours of SSH brute-force logs</h1>
+<div><span class="tag">threat-intel</span></div>
+
+<div class="article-body">
+<p>A low-interaction SSH honeypot on a cloud VM collected over 12,000 login attempts in 48 hours. Most were spray-and-pray root/admin tries, but a handful were strange: slow, low-volume attempts cycling through IoT vendor defaults — the patient kind that evades fail2ban thresholds.</p>
+<p>Top credential pairs, ASN clustering, and timing analysis are all in my notes. The key defender takeaway: ban on ASN + behavior, not just IP, and alert on successful logins from never-before-seen autonomous systems.</p>
+<p>All research was conducted on infrastructure I own, with the honeypot isolated from production networks. Logs are anonymized before publication.</p>
+</div>
+
+<div class="byline">Written by <strong>Lucky Thandel</strong> · HTB walkthrough series · retired machines only — no spoilers for active boxes.</div>
+<p><a class="btn" href="../">← $ cd ../articles</a></p>
+
+<footer>
+  <span>© 2026 Lucky Thandel · written by Lucky Thandel</span>
+  <span>session <span id="session-clock">00:00:00</span> · <a href="../../contact/">contact</a></span>
+</footer>
+</div>
+<script src="../../assets/js/terminal.js"></script>
+</body>
+</html>

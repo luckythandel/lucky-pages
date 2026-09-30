@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Enumeration notes: nmap, SMB, web fuzzing without the noise — Lucky Thandel</title>
+<meta name="description" content="The small set of enumeration commands that cover most easy machines, plus how I record results for the write-up. By Lucky Thandel.">
+<link rel="stylesheet" href="../../assets/css/style.css">
+</head>
+<body>
+<canvas id="matrix"></canvas>
+<div class="wrap">
+<nav class="nav">
+  <a class="logo" href="../../">lucky@thandel:~<span class="cursor">▊</span></a>
+  <a class="link" href="../../">./home</a>
+  <a class="link active" href="../">./articles</a>
+  <a class="link" href="../../about/">./about</a>
+  <a class="link" href="../../contact/">./contact</a>
+</nav>
+
+<div class="meta">2026-09-15 · enumeration · by Lucky Thandel</div>
+<h1>Enumeration notes: nmap, SMB, web fuzzing without the noise</h1>
+<div><span class="tag">enumeration</span><span class="tag">beginner</span></div>
+
+<div class="article-body">
+<p>Enumeration is where easy machines are won. A small, repeatable command set beats a large random one.</p>
+<p>nmap -sC -sV --min-rate 5000 for services, gobuster dir -u http://target -w common wordlist for web paths, smbclient -L and enum4linux for SMB shares. Record every open port, version, and finding in a table before moving to exploitation.</p>
+<p>Rule: no exploitation until the enumeration table is complete. Write-ups on this site follow that order.</p>
+</div>
+
+<div class="byline">Written by <strong>Lucky Thandel</strong> · HTB walkthrough series · retired machines only — no spoilers for active boxes.</div>
+<p><a class="btn" href="../">← $ cd ../articles</a></p>
+
+<footer>
+  <span>© 2026 Lucky Thandel · written by Lucky Thandel</span>
+  <span>session <span id="session-clock">00:00:00</span> · <a href="../../contact/">contact</a></span>
+</footer>
+</div>
+<script src="../../assets/js/terminal.js"></script>
+</body>
+</html>

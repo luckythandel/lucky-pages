@@ -134,3 +134,7 @@ footer {
 table.cmd { border-collapse: collapse; width: 100%; font-size: 13.5px; margin: 14px 0; }
 table.cmd td, table.cmd th { border: 1px solid var(--border); padding: 6px 10px; text-align: left; }
 table.cmd th { color: var(--amber); background: var(--panel); }
+.code-title { color: var(--amber); }
+.post-figure { margin: 18px 0; border: 1px solid var(--border); background: #050805; }
+.post-figure img { display: block; width: 100%; height: auto; }
+.post-figure figcaption { padding: 8px 12px; color: var(--muted); font-size: 13px; border-top: 1px solid var(--border); }

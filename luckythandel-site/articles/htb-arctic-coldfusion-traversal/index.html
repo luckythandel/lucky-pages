@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>HTB Arctic: ColdFusion traversal to admin to SYSTEM — Lucky Thandel</title>
+<meta name="description" content="Adobe ColdFusion 8 directory traversal (CVE-2010-2861) leaks the admin hash, the admin console schedules a CFM shell, and the service is SYSTEM. By Lucky Thandel.">
+<link rel="stylesheet" href="../../assets/css/style.css">
+</head>
+<body>
+<canvas id="matrix"></canvas>
+<div class="wrap">
+<nav class="nav">
+  <a class="logo" href="../../">lucky@thandel:~<span class="cursor">▊</span></a>
+  <a class="link" href="../../">./home</a>
+  <a class="link active" href="../">./articles</a>
+  <a class="link" href="../../about/">./about</a>
+  <a class="link" href="../../contact/">./contact</a>
+</nav>
+
+<div class="meta">2026-10-11 · retired-machine · by Lucky Thandel</div>
+<h1>HTB Arctic: ColdFusion traversal to admin to SYSTEM</h1>
+<div><span class="tag">retired-machine</span><span class="tag">easy</span></div>
+
+<div class="article-body">
+<p>Arctic is a retired HackTheBox easy Windows machine centered on Adobe ColdFusion 8. Synopsis: directory traversal (CVE-2010-2861) leaks the admin hash, the admin console schedules a CFM shell, and the service is SYSTEM.</p>
+<h2><span class="amber">$</span> Enumeration — fingerprint the middleware</h2>
+<pre class="terminal"><span class="prompt"></span><span class="code-title"># bash: spot ColdFusion 8</span>
+nmap -sC -sV -oN arctic.nmap 10.10.10.11
+gobuster dir -u http://10.10.10.11:8500 -w common.txt   # -&gt; /CFIDE/administrator/</pre>
+<p>HTTP on Server 2008 with /CFIDE/ paths all over the site. The version plus the /CFIDE/administrator/ surface is the whole recon story: ColdFusion 8 means CVE-2010-2861. Fingerprint the app, not just the server.</p>
+<h2><span class="amber">$</span> Foothold — traversal to admin hash</h2>
+<pre class="terminal"><span class="prompt"></span><span class="code-title"># bash: read password.properties via traversal</span>
+# administrator login vulnerable to .../ traversal (CVE-2010-2861):
+curl &quot;http://10.10.10.11:8500/CFIDE/administrator/enter.cfm?locale=../../../../../../../../../../ColdFusion8/lib/password.properties%00en&quot;
+# crack the hash, log into the CF admin console</pre>
+<p>The traversal reads password.properties, exposing the admin password hash. Crack it, log into the ColdFusion administrator console, and use scheduled tasks to execute a malicious CFM file — a webshell with the full ColdFusion API behind it. Start with a simple command-execution tag to prove code exec, then upgrade to a full shell.</p>
+<h2><span class="amber">$</span> Flags — service is SYSTEM</h2>
+<p>The ColdFusion service runs as SYSTEM, so the scheduled CFM shell lands at the top of the privilege ladder and both flags fall immediately. Flag values redacted per HTB rules; earn them in your own lab.</p>
+<h2><span class="amber">$</span> Dead ends</h2>
+<p>Attacking the IIS layer (the web server is fine — the middleware is the vulnerability) and writing a complex CFM payload first.</p>
+<h2><span class="amber">$</span> Remediation notes</h2>
+<p>Retire ColdFusion 8, run application services as dedicated low-privilege accounts, and lock admin consoles behind network controls. Written by Lucky Thandel.</p>
+</div>
+
+<div class="byline">Written by <strong>Lucky Thandel</strong> · HTB walkthrough series · retired machines only — no spoilers for active boxes.</div>
+<p><a class="btn" href="../">← $ cd ../articles</a></p>
+
+<footer>
+  <span>© 2026 Lucky Thandel · written by Lucky Thandel</span>
+  <span>session <span id="session-clock">00:00:00</span> · <a href="../../contact/">contact</a></span>
+</footer>
+</div>
+<script src="../../assets/js/terminal.js"></script>
+</body>
+</html>

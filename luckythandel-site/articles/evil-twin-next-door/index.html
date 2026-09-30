@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Evil twins next door: mapping rogue Wi-Fi beacons in my building — Lucky Thandel</title>
+<meta name="description" content="Passive Wi-Fi survey of my apartment block turned up copycat SSIDs and a deauth-happy neighbor. How I mapped it without transmitting a thing. By Lucky Thandel.">
+<link rel="stylesheet" href="../../assets/css/style.css">
+</head>
+<body>
+<canvas id="matrix"></canvas>
+<div class="wrap">
+<nav class="nav">
+  <a class="logo" href="../../">lucky@thandel:~<span class="cursor">▊</span></a>
+  <a class="link" href="../../">./home</a>
+  <a class="link active" href="../">./articles</a>
+  <a class="link" href="../../about/">./about</a>
+  <a class="link" href="../../contact/">./contact</a>
+</nav>
+
+<div class="meta">2026-09-21 · wireless · by Lucky Thandel</div>
+<h1>Evil twins next door: mapping rogue Wi-Fi beacons in my building</h1>
+<div><span class="tag">wireless</span></div>
+
+<div class="article-body">
+<p>Using a monitor-mode adapter in fully passive capture, I logged beacon frames across 2.4 and 5 GHz for a week. Two SSIDs mimicked the building ISP default naming with slightly stronger signal — classic evil-twin positioning near the lobby.</p>
+<p>Methodology: Kismet for capture, signal-strength triangulation by walking floors, and OUI lookups to fingerprint AP vendors. No deauthentication, no association, no interaction with any network I do not own.</p>
+<p>Defender takeaway: enterprises should baseline BSSID + OUI + signal geography; anything new and loud near the entrance deserves a look.</p>
+</div>
+
+<div class="byline">Written by <strong>Lucky Thandel</strong> · HTB walkthrough series · retired machines only — no spoilers for active boxes.</div>
+<p><a class="btn" href="../">← $ cd ../articles</a></p>
+
+<footer>
+  <span>© 2026 Lucky Thandel · written by Lucky Thandel</span>
+  <span>session <span id="session-clock">00:00:00</span> · <a href="../../contact/">contact</a></span>
+</footer>
+</div>
+<script src="../../assets/js/terminal.js"></script>
+</body>
+</html>

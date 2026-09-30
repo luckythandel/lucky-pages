@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Linux privilege escalation basics I check first — Lucky Thandel</title>
+<meta name="description" content="sudo, SUID, cron, writable paths — the first-pass checks before reaching for heavier tooling. By Lucky Thandel.">
+<link rel="stylesheet" href="../../assets/css/style.css">
+</head>
+<body>
+<canvas id="matrix"></canvas>
+<div class="wrap">
+<nav class="nav">
+  <a class="logo" href="../../">lucky@thandel:~<span class="cursor">▊</span></a>
+  <a class="link" href="../../">./home</a>
+  <a class="link active" href="../">./articles</a>
+  <a class="link" href="../../about/">./about</a>
+  <a class="link" href="../../contact/">./contact</a>
+</nav>
+
+<div class="meta">2026-09-10 · privesc · by Lucky Thandel</div>
+<h1>Linux privilege escalation basics I check first</h1>
+<div><span class="tag">privesc</span><span class="tag">beginner</span></div>
+
+<div class="article-body">
+<p>First-pass privilege escalation is manual and fast: sudo -l, find / -perm -4000 for SUID, crontab -l and /etc/cron* for scheduled jobs, and writable PATH/service checks.</p>
+<p>Only after the manual pass do I run LinPEAS for confirmation. Each check maps to a safe, documented technique — no kernel exploits on shared lab machines.</p>
+<p>Every write-up closes with remediation notes: least privilege, patch cadence, and what the defender should log.</p>
+</div>
+
+<div class="byline">Written by <strong>Lucky Thandel</strong> · HTB walkthrough series · retired machines only — no spoilers for active boxes.</div>
+<p><a class="btn" href="../">← $ cd ../articles</a></p>
+
+<footer>
+  <span>© 2026 Lucky Thandel · written by Lucky Thandel</span>
+  <span>session <span id="session-clock">00:00:00</span> · <a href="../../contact/">contact</a></span>
+</footer>
+</div>
+<script src="../../assets/js/terminal.js"></script>
+</body>
+</html>

